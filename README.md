@@ -4,29 +4,7 @@ Firmware for the WT32-ETH01 board that creates a plain transparent Layer 2 bridg
 
 **Derived from** [esp32_nat_router](https://github.com/martin-ger/esp32_nat_router). The original project is a WiFi NAT router with lot of additional features. This variant operates as a **pure L2 bridge**: the Ethernet port and WiFi AP share a single broadcast domain, and all frames are forwarded transparently at the MAC layer.
 
-```
-        upstream network
-        (switch, router, NAS, ...)
-                |
-         [ Ethernet uplink ]
-                |
-   +------------+------------+
-   |       WT32-ETH01        |
-   |    Ethernet-WiFi Bridge |
-   |                         |
-   |  L2 bridging            |
-   |  Packet capture (PCAP)  |
-   |  Remote console         |
-   |  Syslog forwarding      |
-   +------------+------------+
-                |
-         [ WiFi AP ]
-           (bridged)
-                |
-   +------+------+------+
-   |      |      |      |
- [Phone] [IoT] [Laptop] ...
-```
+<img src="https://github.com/martin-ger/esp32_eth_wifi_bridge/blob/master/topology.png">
 
 All WiFi clients receive their IP addresses from the upstream network's DHCP server and are directly reachable from the wired side. The bridge itself can optionally obtain a management IP (static or DHCP) for web access and remote administration.
 
@@ -92,6 +70,8 @@ Access the web interface from any device connected to the WiFi AP or the Etherne
 
 Shows current connection state: Ethernet link status, management IP, connected WiFi clients, byte counters, and uptime. When a web password is set, the login form appears here.
 
+<img src="https://github.com/martin-ger/esp32_eth_wifi_bridge/blob/master/UI_index.png">
+
 **Configuration**
 
 Grouped into sections. Changes trigger a reboot to apply.
@@ -102,6 +82,8 @@ Grouped into sections. Changes trigger a reboot to apply.
 - *Remote Console* — enable/disable, port, interface binding (AP/ETH), idle timeout
 - *PCAP Packet Capture* — on/off toggle, snaplen
 - *Device Management* — OTA firmware upload, factory reset
+
+<img src="https://github.com/martin-ger/esp32_eth_wifi_bridge/blob/master/UI_config.png">
 
 ### Password Protection
 
