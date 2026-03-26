@@ -1,0 +1,312 @@
+# ESP32 Ethernet-WiFi Bridge (Classic WiFi AP)
+
+Firmware for the WT32-ETH01 board that creates a plain transparent Layer 2 bridge between its Ethernet port and a WiFi access point. Devices connected via Ethernet appear directly on the WiFi network — no NAT, no routing, no separate subnet. Performance tests have shown 18 mbps downstream and 11 mbps upstream.
+
+**Derived from** [esp32_nat_router](https://github.com/martin-ger/esp32_nat_router). The original project is a WiFi NAT router with lot of additional features. This variant operates as a **pure L2 bridge**: the Ethernet port and WiFi AP share a single broadcast domain, and all frames are forwarded transparently at the MAC layer.
+
+```
+        upstream network
+        (switch, router, NAS, ...)
+                |
+         [ Ethernet uplink ]
+                |
+   +------------+------------+
+   |       WT32-ETH01        |
+   |    Ethernet-WiFi Bridge |
+   |                         |
+   |  L2 bridging            |
+   |  Packet capture (PCAP)  |
+   |  Remote console         |
+   |  Syslog forwarding      |
+   +------------+------------+
+                |
+         [ WiFi AP ]
+           (bridged)
+                |
+   +------+------+------+
+   |      |      |      |
+ [Phone] [IoT] [Laptop] ...
+```
+
+All WiFi clients receive their IP addresses from the upstream network's DHCP server and are directly reachable from the wired side. The bridge itself can optionally obtain a management IP (static or DHCP) for web access and remote administration.
+
+All settings are managed through a browser-based web interface or via the serial console at 115200 bps.
+
+---
+
+## Use Cases
+
+- **Wireless extension for a wired network** — add WiFi access to a switch or router that has no wireless capability
+- **Lab bridge** — give WiFi clients direct L2 access to devices on a wired bench segment
+- **Transparent monitoring tap** — capture and inspect all bridged traffic in Wireshark without any client changes
+- **Headless IoT bridge** — connect WiFi sensors and devices directly to an existing wired LAN
+
+---
+
+## Features
+
+- Transparent Layer 2 bridging between Ethernet and WiFi AP
+- WiFi AP with configurable SSID, password, channel, and authentication (WPA2/WPA3)
+- Optional management IP (static or DHCP) for web and remote access
+- Packet capture to Wireshark over TCP (PCAP streaming, promiscuous mode)
+- Remote console — password-protected TCP CLI on a configurable port
+- Syslog forwarding — ship ESP log output to a remote syslog server via UDP
+- OTA firmware update through the web interface
+- Byte counters for the Ethernet interface
+- Configurable WiFi TX power, status LED, and timezone
+- AP interface can be enabled/disabled at runtime
+- All settings persisted in NVS flash; survive firmware updates
+
+---
+
+## Hardware — WT32-ETH01
+
+The WT32-ETH01 is an ESP32-based module with an integrated LAN8720 Ethernet PHY. It exposes both a standard WiFi radio and a 10/100 Mbit/s Ethernet port on the same board.
+
+| Parameter | Value |
+|-----------|-------|
+| SoC | ESP32 (dual-core 240 MHz) |
+| Flash | 4 MB |
+| Ethernet PHY | LAN8720 |
+| Ethernet MDC | GPIO 23 |
+| Ethernet MDIO | GPIO 18 |
+| PHY address | 1 |
+| PHY power | GPIO 16 |
+| Status LED | GPIO 2 (configurable) |
+| Serial | 115200 bps |
+
+**LED behavior:**
+- Solid on: Ethernet link up (idle)
+- Solid off: Ethernet link down
+- Flickering: network traffic activity
+
+---
+
+## Web Interface
+
+Access the web interface from any device connected to the WiFi AP or the Ethernet network (if a management IP is configured). The default address is `http://<management-ip>`.
+
+### Pages
+
+**/ — Status**
+
+Shows current connection state: Ethernet link status, management IP, connected WiFi clients, byte counters, and uptime. When a web password is set, the login form appears here.
+
+**Configuration**
+
+Grouped into sections. Changes trigger a reboot to apply.
+
+- *AP Settings* — SSID, password, channel, authentication mode (WPA2/WPA3), hidden SSID, enable/disable
+- *Management IP* — static IP, subnet mask, gateway; leave empty to use DHCP
+- *DNS Server* — override DNS for AP clients
+- *Remote Console* — enable/disable, port, interface binding (AP/ETH), idle timeout
+- *PCAP Packet Capture* — on/off toggle, snaplen
+- *Device Management* — OTA firmware upload, factory reset
+
+### Password Protection
+
+Set a password with `set_router_password <password>` or through the web interface. When set, the Configuration page requires authentication. Sessions last 30 minutes. Clear the password by setting an empty string.
+
+---
+
+## Packet Capture
+
+Traffic on the bridge can be streamed live to Wireshark over a TCP connection on port 19000. No client software other than netcat and Wireshark is required.
+
+### Usage
+
+```
+pcap start
+pcap stop
+pcap snaplen [<bytes>]
+pcap status
+```
+
+Connect from a workstation on the network:
+
+```
+nc <bridge-ip> 19000 | wireshark -k -i -
+```
+
+The connection command is also shown in the PCAP section of the Configuration page. Snaplen limits the captured bytes per packet (64-1600, default 1600).
+
+---
+
+## Remote Console
+
+A TCP server provides a password-authenticated CLI session accessible over the network. It reuses the web interface password. Output from CLI commands is captured and forwarded to the remote session.
+
+```
+remote_console enable
+remote_console disable
+remote_console port <port>
+remote_console bind <ap,eth>
+remote_console timeout <seconds>
+remote_console kick
+remote_console status
+```
+
+Default port is 2323. Connect with any TCP client:
+
+```
+nc <bridge-ip> 2323
+```
+
+The service is disabled by default. A web password must be set before enabling it. Idle sessions are disconnected after the configured timeout (default 300 seconds; 0 disables the timeout). Only one session is active at a time.
+
+The `bind` option controls which network interfaces the server listens on (AP = WiFi access point, ETH = Ethernet uplink).
+
+---
+
+## Syslog
+
+ESP log output can be forwarded to a remote syslog server over UDP.
+
+```
+syslog enable <server> [<port>]
+syslog disable
+syslog status
+```
+
+The default port is 514. Configuration is persisted in NVS.
+
+---
+
+## CLI Reference
+
+Connect via serial at 115200 bps, or via the remote console.
+
+### Network
+
+| Command | Description |
+|---------|-------------|
+| `set_mgmt_ip <ip> <mask> <gw>` | Set static management IP |
+| `set_mgmt_ip dhcp` | Revert management IP to DHCP |
+| `set_ap <ssid> <password>` | Set WiFi AP credentials |
+| `set_ap_dns <dns>` | Set DNS server for AP clients |
+| `set_ap_mac <mac>` | Override AP MAC address |
+| `set_ap_hidden <on\|off>` | Hide or show AP SSID |
+| `set_ap_auth <wpa2\|wpa3\|wpa2wpa3>` | Set AP authentication mode |
+| `set_ap_channel <0-13>` | Set AP WiFi channel (0=auto) |
+| `ap <enable\|disable>` | Enable or disable AP interface |
+| `set_hostname <name>` | Set DHCP hostname |
+| `set_tx_power <dBm>` | Set WiFi transmit power (2-20, 0=max) |
+| `set_tz <TZ string>` | Set POSIX timezone |
+| `bytes` | Show Ethernet byte counters |
+| `bytes reset` | Reset byte counters |
+
+### Packet Capture
+
+| Command | Description |
+|---------|-------------|
+| `pcap start` | Start promiscuous capture |
+| `pcap stop` | Stop capture |
+| `pcap snaplen [<bytes>]` | Get or set max bytes per packet |
+| `pcap status` | Show capture statistics |
+
+### Remote Console and Syslog
+
+| Command | Description |
+|---------|-------------|
+| `remote_console enable` | Enable remote console |
+| `remote_console disable` | Disable remote console |
+| `remote_console port <port>` | Set TCP port |
+| `remote_console bind <ap,eth>` | Set interface binding |
+| `remote_console timeout <seconds>` | Set idle timeout |
+| `remote_console kick` | Disconnect active session |
+| `remote_console status` | Show status |
+| `syslog enable <server> [<port>]` | Enable syslog forwarding |
+| `syslog disable` | Disable syslog forwarding |
+| `syslog status` | Show syslog configuration |
+
+### Web Interface
+
+| Command | Description |
+|---------|-------------|
+| `web_ui enable` | Enable web server (after reboot) |
+| `web_ui disable` | Disable web server (after reboot) |
+| `web_ui port <port>` | Set web server port (default 80) |
+| `set_router_password <password>` | Set web/console password |
+
+### Status and System
+
+| Command | Description |
+|---------|-------------|
+| `show status` | Connection state, clients, heap |
+| `show config` | AP and Ethernet configuration |
+| `show ota` | OTA partition info |
+| `scan` | Scan for WiFi networks |
+| `set_led_gpio <gpio\|none>` | Set status LED GPIO |
+| `set_led_lowactive <true\|false>` | Set LED to active-low mode |
+| `factory_reset` | Erase all NVS settings and reboot |
+
+---
+
+## Building
+
+Requires ESP-IDF v5.x. Source the ESP-IDF environment, then run the provided build script:
+
+```bash
+. $IDF_PATH/export.sh
+./build_firmware.sh
+```
+
+The script performs a clean build and copies the four binary files into the `firmware/` directory:
+
+```
+firmware/
+├── bootloader.bin
+├── partition-table.bin
+├── ota_data_initial.bin
+└── esp32_eth_router.bin
+```
+
+To reconfigure build options before building:
+
+```bash
+idf.py -B build_eth_sta menuconfig
+```
+
+OTA updates are also supported through the web interface (Device Management section) with partition rollback on failed updates.
+
+---
+
+## Installation
+
+Flash the binaries from the `firmware/` directory using `esptool.py`:
+
+```bash
+esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 \
+  write_flash \
+  0x1000  firmware/bootloader.bin \
+  0x8000  firmware/partition-table.bin \
+  0xf000  firmware/ota_data_initial.bin \
+  0x20000 firmware/esp32_eth_router.bin
+```
+
+After flashing, connect via serial at 115200 bps and configure the WiFi AP:
+
+```
+set_ap MyWiFiSSID MyPassword
+restart
+```
+
+The bridge will reboot. Connect a WiFi client to the AP — it will receive an IP from the upstream network's DHCP server via the Ethernet uplink.
+
+To set a management IP for web access:
+
+```
+set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
+```
+
+To erase all settings and return to defaults:
+
+```
+factory_reset
+```
+
+or via esptool to wipe the entire flash:
+
+```bash
+esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
+```
