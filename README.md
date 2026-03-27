@@ -162,8 +162,7 @@ Connect via serial at 115200 bps, or via the remote console.
 
 | Command | Description |
 |---------|-------------|
-| `set_mgmt_ip <ip> <mask> <gw>` | Set static management IP |
-| `set_mgmt_ip dhcp` | Revert management IP to DHCP |
+| `show config` | AP and Ethernet configuration |
 | `set_ap <ssid> <password>` | Set WiFi AP credentials |
 | `set_ap_dns <dns>` | Set DNS server for AP clients |
 | `set_ap_mac <mac>` | Override AP MAC address |
@@ -171,11 +170,14 @@ Connect via serial at 115200 bps, or via the remote console.
 | `set_ap_auth <wpa2\|wpa3\|wpa2wpa3>` | Set AP authentication mode |
 | `set_ap_channel <0-13>` | Set AP WiFi channel (0=auto) |
 | `ap <enable\|disable>` | Enable or disable AP interface |
+| `set_mgmt_ip <ip> <mask> <gw>` | Set static management IP |
+| `set_mgmt_ip dhcp` | Revert management IP to DHCP |
 | `set_hostname <name>` | Set DHCP hostname |
 | `set_tx_power <dBm>` | Set WiFi transmit power (2-20, 0=max) |
 | `set_tz <TZ string>` | Set POSIX timezone |
 | `bytes` | Show Ethernet byte counters |
 | `bytes reset` | Reset byte counters |
+| `ping <host> [-c <n>] [-i <ms>] [-W <ms>] [-s <bytes>]` | Send ICMP echo requests |
 
 ### Packet Capture
 
@@ -197,6 +199,7 @@ Connect via serial at 115200 bps, or via the remote console.
 | `remote_console timeout <seconds>` | Set idle timeout |
 | `remote_console kick` | Disconnect active session |
 | `remote_console status` | Show status |
+| `log_level [<level>] [-t <tag>]` | Get/set log level (none/error/warn/info/debug/verbose) |
 | `syslog enable <server> [<port>]` | Enable syslog forwarding |
 | `syslog disable` | Disable syslog forwarding |
 | `syslog status` | Show syslog configuration |
@@ -215,11 +218,15 @@ Connect via serial at 115200 bps, or via the remote console.
 | Command | Description |
 |---------|-------------|
 | `show status` | Connection state, clients, heap |
-| `show config` | AP and Ethernet configuration |
 | `show ota` | OTA partition info |
-| `scan` | Scan for WiFi networks |
 | `set_led_gpio <gpio\|none>` | Set status LED GPIO |
 | `set_led_lowactive <true\|false>` | Set LED to active-low mode |
+| `version` | Show chip and SDK version |
+| `restart` | Software reset of the chip |
+| `heap` | Show current and minimum free heap |
+| `tasks` | List running FreeRTOS tasks |
+| `deep_sleep [--time <ms>] [--io <gpio>] [--io_level <0\|1>]` | Enter deep sleep |
+| `light_sleep [--time <ms>] [--io <gpio>]...` | Enter light sleep |
 | `factory_reset` | Erase all NVS settings and reboot |
 
 ---
