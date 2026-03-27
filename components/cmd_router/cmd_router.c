@@ -39,6 +39,7 @@
 #include "syslog_client.h"
 #include "esp_ota_ops.h"
 #include "esp_app_desc.h"
+#include "mdns_responder.h"
 
 #ifdef CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS
 #define WITH_TASKS_INFO 1
@@ -557,7 +558,8 @@ static int set_hostname_cmd(int argc, char **argv)
     printf("Restart to apply.\n");
 
     free(hostname);
-    hostname = strdup(name);
+    hostname = strdup(len > 0 ? name : DEFAULT_HOSTNAME);
+    mdns_responder_set_hostname(hostname);
 
     return err;
 }

@@ -984,7 +984,7 @@ static esp_err_t config_get_handler(httpd_req_t *req)
 
     /* Chunk 6: Hostname */
     snprintf(section, sizeof(section), CONFIG_CHUNK_HOSTNAME,
-        hostname ? hostname : "");
+        hostname, hostname);
     httpd_resp_send_chunk(req, section, HTTPD_RESP_USE_STRLEN);
 
     /* Chunk 7: Remote Console */

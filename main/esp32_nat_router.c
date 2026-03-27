@@ -48,6 +48,7 @@
 #include "router_globals.h"
 #include "lwip/ip_addr.h"
 #include "pcap_capture.h"
+#include "mdns_responder.h"
 #include "remote_console.h"
 #include "syslog_client.h"
 
@@ -208,6 +209,10 @@ static void eth_event_handler(void* arg, esp_event_base_t event_base,
     if (event_base == ETH_EVENT) {
         if (event_id == ETHERNET_EVENT_CONNECTED) {
             ESP_LOGI(TAG, "Ethernet link up");
+            // For static IP, no GOT_IP fires — join multicast now that the netif is up
+            if (has_static_ip) {
+                mdns_responder_set_ip(esp_ip4addr_aton(static_ip));
+            }
         } else if (event_id == ETHERNET_EVENT_DISCONNECTED) {
             ESP_LOGI(TAG, "Ethernet link down");
             ap_connect = false;
@@ -223,6 +228,7 @@ static void eth_event_handler(void* arg, esp_event_base_t event_base,
 
         init_byte_counter();
         syslog_notify_connected();
+        mdns_responder_set_ip(event->ip_info.ip.addr);
 
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
     }
@@ -385,11 +391,10 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     ESP_ERROR_CHECK(esp_netif_attach(br_netif, br_glue));
 
     // Set hostname on bridge interface
-    if (hostname && hostname[0]) {
-        esp_netif_set_hostname(br_netif, hostname);
-    }
+    esp_netif_set_hostname(br_netif, hostname);
 
     // Static IP on bridge if configured
+    uint32_t initial_ip = 0;
     if (strlen(static_ip) > 0 && strlen(subnet_mask) > 0 && strlen(gateway_addr) > 0) {
         has_static_ip = true;
         esp_netif_ip_info_t ipInfo;
@@ -398,7 +403,11 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
         ipInfo.netmask.addr = esp_ip4addr_aton(subnet_mask);
         esp_netif_dhcpc_stop(br_netif);
         esp_netif_set_ip_info(br_netif, &ipInfo);
+        initial_ip = ipInfo.ip.addr;
     }
+
+    // Start mDNS responder (IP=0 for DHCP; updated in GOT_IP handler)
+    mdns_responder_start(hostname, initial_ip);
 
     // Register event handlers
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, NULL));
@@ -482,13 +491,13 @@ void app_main(void)
 
     get_config_param_blob("ap_mac", &ap_mac, 6);
     get_config_param_str("ap_ssid", &ap_ssid);
-    if (ap_ssid == NULL) ap_ssid = param_set_default("ESP32_Bridge");
+    if (ap_ssid == NULL) ap_ssid = param_set_default(DEFAULT_HOSTNAME);
     get_config_param_str("ap_passwd", &ap_passwd);
     if (ap_passwd == NULL) ap_passwd = param_set_default("");
     get_config_param_str("ap_dns", &ap_dns);
     if (ap_dns == NULL) ap_dns = param_set_default("");
     get_config_param_str("hostname", &hostname);
-    if (hostname == NULL) hostname = param_set_default("");
+    if (hostname == NULL || hostname[0] == '\0') hostname = param_set_default(DEFAULT_HOSTNAME);
 
     // Load LED GPIO setting from NVS (default -1 = disabled)
     int led_gpio_setting = -1;

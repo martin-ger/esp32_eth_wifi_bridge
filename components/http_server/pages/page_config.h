@@ -90,7 +90,7 @@ setTimeout(\"location.href = '/'\", 10000);\
 <h2>Hostname</h2>\
 <form action='' method='GET'>\
 <table>\
-<tr><td>Hostname</td><td><input type='text' name='hostname' value='%s' placeholder='esp32-bridge'/></td></tr>\
+<tr><td>Hostname</td><td><input type='text' name='hostname' value='%s' placeholder='%s'/></td></tr>\
 <tr><td></td><td><input type='submit' value='Save &amp; Reboot' class='ok-button'/></td></tr>\
 </table>\
 </form>"

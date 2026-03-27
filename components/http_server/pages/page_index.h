@@ -181,7 +181,7 @@ font-size: 0.8rem;\
 <div style='margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center;'>\
 <span style='color: #666; font-size: 0.75rem; font-family: monospace;'>v%s | Build: %s %s | ESP-IDF: "\
 IDF_VER\
-" | <a href='https://github.com/martin-ger/esp32_nat_router' target='_blank' rel='noopener' style='color: #ffb300; text-decoration: none;'>Source</a></span>\
+" | <a href='https://github.com/martin-ger/esp32_eth_wifi_bridge' target='_blank' rel='noopener' style='color: #ffb300; text-decoration: none;'>Source</a></span>\
 </div>\
 </div>\
 </body>\

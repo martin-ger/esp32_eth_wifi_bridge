@@ -62,7 +62,7 @@ The WT32-ETH01 is an ESP32-based module with an integrated LAN8720 Ethernet PHY.
 
 ## Web Interface
 
-Access the web interface from any device connected to the WiFi AP or the Ethernet network (if a management IP is configured). The default address is `http://<management-ip>`.
+Access the web interface from any device connected to the WiFi AP or the Ethernet network. The default address is `http://<management-ip>` or if the client supports mDNS `http://esp32bridge.local` (if you use the default hostname for the device).
 
 ### Pages
 
