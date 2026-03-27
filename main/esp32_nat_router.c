@@ -209,6 +209,9 @@ static void eth_event_handler(void* arg, esp_event_base_t event_base,
     if (event_base == ETH_EVENT) {
         if (event_id == ETHERNET_EVENT_CONNECTED) {
             ESP_LOGI(TAG, "Ethernet link up");
+            // bridgeif_init() in lwIP hardcodes netif->hostname = "lwip"; override it here
+            // after the bridge netif is fully initialized, before DHCP sends DISCOVER
+            esp_netif_set_hostname(br_netif, hostname);
             // For static IP, no GOT_IP fires — join multicast now that the netif is up
             if (has_static_ip) {
                 mdns_responder_set_ip(esp_ip4addr_aton(static_ip));
@@ -384,14 +387,18 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     };
     br_netif = esp_netif_new(&br_netif_cfg);
 
-    // Bridge glue: attach ports
+    // Stop DHCP before attach so it cannot send a DISCOVER before hostname is set
+    esp_netif_dhcpc_stop(br_netif);
+
+    // Bridge glue: attach ports (this creates the lwIP bridge netif internally)
     esp_netif_br_glue_handle_t br_glue = esp_netif_br_glue_new();
     ESP_ERROR_CHECK(esp_netif_br_glue_add_port(br_glue, eth_port_netif));
     ESP_ERROR_CHECK(esp_netif_br_glue_add_wifi_port(br_glue, wifi_port_netif));
     ESP_ERROR_CHECK(esp_netif_attach(br_netif, br_glue));
 
-    // Set hostname on bridge interface
+    // Set hostname after attach — lwip_netif is now valid
     esp_netif_set_hostname(br_netif, hostname);
+    esp_netif_set_hostname(eth_port_netif, hostname);
 
     // Static IP on bridge if configured
     uint32_t initial_ip = 0;
@@ -401,9 +408,11 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
         ipInfo.ip.addr = esp_ip4addr_aton(static_ip);
         ipInfo.gw.addr = esp_ip4addr_aton(gateway_addr);
         ipInfo.netmask.addr = esp_ip4addr_aton(subnet_mask);
-        esp_netif_dhcpc_stop(br_netif);
         esp_netif_set_ip_info(br_netif, &ipInfo);
         initial_ip = ipInfo.ip.addr;
+    } else {
+        // Start DHCP now that hostname is set
+        esp_netif_dhcpc_start(br_netif);
     }
 
     // Start mDNS responder (IP=0 for DHCP; updated in GOT_IP handler)

@@ -17,7 +17,7 @@ extern "C" {
 
 #define AP_MAX_CONNECTIONS 8
 
-#define DEFAULT_HOSTNAME "esp32bridge"
+#define DEFAULT_HOSTNAME "esp32-bridge"
 
 // Bridge netif (management IP)
 extern esp_netif_t *br_netif;
