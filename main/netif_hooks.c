@@ -39,7 +39,7 @@ static struct netif *ap_netif = NULL;
 // Per-client traffic statistics for AP clients
 static client_stats_entry_t client_stats[CLIENT_STATS_MAX];
 
-static inline client_stats_entry_t* find_client_stats(const uint8_t *mac) {
+static IRAM_ATTR client_stats_entry_t* find_client_stats(const uint8_t *mac) {
     for (int i = 0; i < CLIENT_STATS_MAX; i++) {
         if (client_stats[i].active && memcmp(client_stats[i].mac, mac, 6) == 0) {
             return &client_stats[i];
@@ -117,7 +117,7 @@ void format_bytes_human(uint64_t bytes, char *buf, size_t len) {
 }
 
 // ETH port input hook: count received bytes, PCAP capture
-static err_t netif_input_hook(struct pbuf *p, struct netif *netif) {
+static IRAM_ATTR err_t netif_input_hook(struct pbuf *p, struct netif *netif) {
     // PCAP capture (ETH interface)
     if (pcap_should_capture(false, false)) {
         pcap_capture_packet(p);
@@ -139,7 +139,7 @@ static err_t netif_input_hook(struct pbuf *p, struct netif *netif) {
 }
 
 // ETH port output hook: count sent bytes, PCAP capture
-static err_t netif_linkoutput_hook(struct netif *netif, struct pbuf *p) {
+static IRAM_ATTR err_t netif_linkoutput_hook(struct netif *netif, struct pbuf *p) {
     // PCAP capture (ETH interface)
     if (pcap_should_capture(false, false)) {
         pcap_capture_packet(p);
@@ -231,7 +231,7 @@ void format_boot_time(char *buf, size_t buf_len) {
 }
 
 // AP port input hook: per-client stats, PCAP capture
-static err_t ap_netif_input_hook(struct pbuf *p, struct netif *netif) {
+static IRAM_ATTR err_t ap_netif_input_hook(struct pbuf *p, struct netif *netif) {
     // Per-client byte counting: source MAC = client
     if (p != NULL && p->len >= 14) {
         const uint8_t *src_mac = ((const uint8_t *)p->payload) + 6;
@@ -254,7 +254,7 @@ static err_t ap_netif_input_hook(struct pbuf *p, struct netif *netif) {
 }
 
 // AP port output hook: per-client stats, PCAP capture
-static err_t ap_netif_linkoutput_hook(struct netif *netif, struct pbuf *p) {
+static IRAM_ATTR err_t ap_netif_linkoutput_hook(struct netif *netif, struct pbuf *p) {
     // Per-client byte counting: dest MAC = client
     if (p != NULL && p->len >= 14) {
         const uint8_t *dst_mac = (const uint8_t *)p->payload;
