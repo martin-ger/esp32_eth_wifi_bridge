@@ -270,7 +270,7 @@ esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 \
   0x1000  firmware/bootloader.bin \
   0x8000  firmware/partition-table.bin \
   0xf000  firmware/ota_data_initial.bin \
-  0x20000 firmware/esp32_eth_router.bin
+  0x20000 firmware/esp32_eth_wifi_bridge.bin
 ```
 
 After flashing, connect via serial at 115200 bps and configure the WiFi AP:
