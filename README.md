@@ -1,6 +1,6 @@
 # ESP32 Ethernet-WiFi Bridge (Classic WiFi AP)
 
-Firmware for the WT32-ETH01 board that creates a plain transparent Layer 2 bridge between its Ethernet port and a WiFi access point. Devices connected via Ethernet appear directly on the WiFi network — no NAT, no routing, no separate subnet. Performance tests have shown 18 mbps downstream and 11 mbps upstream.
+Firmware for the **[WT32-ETH01](https://github.com/egnor/wt32-eth01)** board that creates a plain transparent Layer 2 bridge between its Ethernet port and a WiFi access point. Devices connected via Ethernet appear directly on the WiFi network — no NAT, no routing, no separate subnet. Performance tests have shown 18 mbps downstream and 11 mbps upstream.
 
 **Derived from** [esp32_nat_router](https://github.com/martin-ger/esp32_nat_router). The original project is a WiFi NAT router with lot of additional features. This variant operates as a **pure L2 bridge**: the Ethernet port and WiFi AP share a single broadcast domain, and all frames are forwarded transparently at the MAC layer.
 
@@ -280,9 +280,9 @@ set_ap MyWiFiSSID MyPassword
 restart
 ```
 
-The bridge will reboot. Connect a WiFi client to the AP — it will receive an IP from the upstream network's DHCP server via the Ethernet uplink.
+The bridge will reboot. Connect a WiFi client to the AP — it will receive an IP from the upstream network's DHCP server via the Ethernet uplink. You can then access the bridge via mDNS at `http://esp32-bridge.local`:
 
-To set a management IP for web access:
+You can set a static management IP for web access if required, e.g.:
 
 ```
 set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
