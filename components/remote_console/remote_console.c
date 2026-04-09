@@ -23,6 +23,8 @@
 #include "nvs.h"
 #include "lwip/sockets.h"
 #include "lwip/ip4_addr.h"
+#include "lwip/etharp.h"
+#include "esp_wifi.h"
 
 #include "remote_console.h"
 #include "router_config.h"
@@ -700,6 +702,37 @@ static void handle_session(int client_fd) {
     ESP_LOGI(TAG, "Session ended with %s", rc_state.client_ip);
 }
 
+/**
+ * @brief Check if a client IP belongs to a connected WiFi AP station.
+ *
+ * Looks up the client's MAC via the ARP table, then checks it against
+ * the AP station list. Returns false (ETH assumed) if the ARP entry is
+ * not yet present or the AP station list cannot be retrieved.
+ */
+static bool is_ap_client(uint32_t client_ip_addr) {
+    ip4_addr_t *ip_ret;
+    struct netif *netif_ret;
+    struct eth_addr *eth_ret;
+
+    for (int i = 0; i < ARP_TABLE_SIZE; i++) {
+        if (etharp_get_entry(i, &ip_ret, &netif_ret, &eth_ret)) {
+            if (ip_ret->addr == client_ip_addr) {
+                wifi_sta_list_t sta_list;
+                if (esp_wifi_ap_get_sta_list(&sta_list) != ESP_OK) {
+                    return false;
+                }
+                for (int j = 0; j < sta_list.num; j++) {
+                    if (memcmp(sta_list.sta[j].mac, eth_ret->addr, 6) == 0) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+    }
+    return false;  /* No ARP entry yet — assume ETH */
+}
+
 static void remote_console_task(void *arg) {
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len;
@@ -765,18 +798,21 @@ static void remote_console_task(void *arg) {
             /* Get client IP */
             inet_ntop(AF_INET, &client_addr.sin_addr, rc_state.client_ip, sizeof(rc_state.client_ip));
 
-            /* Check interface binding - reject connections on disallowed interfaces */
+            /* Check interface binding via ARP + WiFi station list.
+             * Since there is only one bridge IP, getsockname() cannot
+             * distinguish AP from ETH — so we resolve the client MAC
+             * from the ARP table and check it against the AP station list. */
             {
-                struct sockaddr_in local_addr;
-                socklen_t addr_len = sizeof(local_addr);
-                getsockname(rc_state.client_socket, (struct sockaddr *)&local_addr, &addr_len);
-                uint32_t local_ip = local_addr.sin_addr.s_addr;
+                bool from_ap = is_ap_client(client_addr.sin_addr.s_addr);
+                bool allowed = (from_ap  && (rc_config.bind & RC_BIND_AP)) ||
+                               (!from_ap && (rc_config.bind & RC_BIND_ETH));
 
-                // In bridge mode, all connections go to the bridge management IP
-                bool allowed = (local_ip == my_ip);
+                ESP_LOGI(TAG, "Connection from %s via %s interface",
+                         rc_state.client_ip, from_ap ? "AP" : "ETH");
 
                 if (!allowed) {
-                    ESP_LOGW(TAG, "Connection from %s rejected (interface not allowed)", rc_state.client_ip);
+                    ESP_LOGW(TAG, "Connection from %s rejected (bind mask 0x%02x disallows %s)",
+                             rc_state.client_ip, rc_config.bind, from_ap ? "AP" : "ETH");
                     close(rc_state.client_socket);
                     rc_state.client_socket = -1;
                     continue;

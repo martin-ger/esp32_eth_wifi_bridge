@@ -47,6 +47,7 @@
 
 #include "router_globals.h"
 #include "lwip/ip_addr.h"
+#include "esp_sntp.h"
 #include "pcap_capture.h"
 #include "mdns_responder.h"
 #include "remote_console.h"
@@ -232,6 +233,14 @@ static void eth_event_handler(void* arg, esp_event_base_t event_base,
         init_byte_counter();
         syslog_notify_connected();
         mdns_responder_set_ip(event->ip_info.ip.addr);
+
+        /* Start SNTP if not already running */
+        if (esp_sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET) {
+            esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+            esp_sntp_setservername(0, "pool.ntp.org");
+            esp_sntp_init();
+            ESP_LOGI(TAG, "SNTP started");
+        }
 
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
     }
