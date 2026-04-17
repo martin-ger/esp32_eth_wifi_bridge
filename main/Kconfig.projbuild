@@ -28,4 +28,14 @@ menu "Bridge Configuration"
         int "ETH PHY power GPIO (-1 for none)"
         default 16
 
+    config BRIDGE_FDB_MAX_ENTRIES
+        int "Bridge FDB max dynamic entries"
+        default 48
+        range 4 256
+        help
+            Maximum number of dynamic entries in the bridge forwarding
+            database (MAC address table). Each entry tracks a learned
+            MAC address and its associated port. Increase if the bridge
+            serves many devices.
+
 endmenu

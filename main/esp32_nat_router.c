@@ -379,7 +379,7 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     // --- Bridge netif (management IP via DHCP or static) ---
     esp_netif_inherent_config_t br_config = ESP_NETIF_INHERENT_DEFAULT_BR();
     bridgeif_config_t bridgeif_config = {
-        .max_fdb_dyn_entries = 10,
+        .max_fdb_dyn_entries = CONFIG_BRIDGE_FDB_MAX_ENTRIES,
         .max_fdb_sta_entries = 2,
         .max_ports = 2  // ETH + WiFi AP
     };

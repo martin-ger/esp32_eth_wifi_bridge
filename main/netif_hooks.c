@@ -23,6 +23,7 @@
 
 extern esp_netif_t *eth_port_netif;
 extern esp_netif_t *wifi_port_netif;
+extern esp_netif_t *br_netif;
 
 static const char *TAG = "netif_hooks";
 
@@ -35,6 +36,20 @@ static struct netif *sta_netif = NULL;
 static netif_input_fn original_ap_netif_input = NULL;
 static netif_linkoutput_fn original_ap_netif_linkoutput = NULL;
 static struct netif *ap_netif = NULL;
+
+// Cached local MAC addresses — unicast frames to these are consumed, not forwarded
+static uint8_t bridge_mac[6];
+static uint8_t ap_mac_cached[6];
+static bool bridge_mac_valid = false;
+static bool ap_mac_cached_valid = false;
+
+// Check if a unicast destination MAC belongs to the bridge itself
+static IRAM_ATTR bool is_local_unicast(const uint8_t *dst) {
+    if (dst[0] & 1) return false;  // broadcast/multicast — must be forwarded
+    if (bridge_mac_valid && memcmp(dst, bridge_mac, 6) == 0) return true;
+    if (ap_mac_cached_valid && memcmp(dst, ap_mac_cached, 6) == 0) return true;
+    return false;
+}
 
 // Per-client traffic statistics for AP clients
 static client_stats_entry_t client_stats[CLIENT_STATS_MAX];
@@ -138,8 +153,14 @@ static IRAM_ATTR err_t netif_input_hook(struct pbuf *p, struct netif *netif) {
     return ERR_VAL;
 }
 
-// ETH port output hook: count sent bytes, PCAP capture
+// ETH port output hook: count sent bytes, PCAP capture, filter local-destined frames
 static IRAM_ATTR err_t netif_linkoutput_hook(struct netif *netif, struct pbuf *p) {
+    // Drop unicast frames destined for the bridge itself — these should not
+    // be forwarded out the ETH port (the bridge consumes them locally).
+    if (p != NULL && p->len >= 14 && is_local_unicast((const uint8_t *)p->payload)) {
+        return ERR_OK;
+    }
+
     // PCAP capture (ETH interface)
     if (pcap_should_capture(false, false)) {
         pcap_capture_packet(p);
@@ -170,6 +191,15 @@ void init_byte_counter(void) {
             original_netif_linkoutput = sta_netif->linkoutput;
             sta_netif->linkoutput = netif_linkoutput_hook;
             ESP_LOGI(TAG, "Byte counter initialized for ETH interface");
+        }
+    }
+    // Cache bridge MAC for local-destination filtering
+    if (br_netif != NULL && !bridge_mac_valid) {
+        if (esp_netif_get_mac(br_netif, bridge_mac) == ESP_OK) {
+            bridge_mac_valid = true;
+            ESP_LOGI(TAG, "Bridge MAC cached: %02x:%02x:%02x:%02x:%02x:%02x",
+                     bridge_mac[0], bridge_mac[1], bridge_mac[2],
+                     bridge_mac[3], bridge_mac[4], bridge_mac[5]);
         }
     }
 }
@@ -253,8 +283,14 @@ static IRAM_ATTR err_t ap_netif_input_hook(struct pbuf *p, struct netif *netif) 
     return ERR_VAL;
 }
 
-// AP port output hook: per-client stats, PCAP capture
+// AP port output hook: per-client stats, PCAP capture, filter local-destined frames
 static IRAM_ATTR err_t ap_netif_linkoutput_hook(struct netif *netif, struct pbuf *p) {
+    // Drop unicast frames destined for the bridge itself — these should not
+    // be forwarded out the AP port (the bridge consumes them locally).
+    if (p != NULL && p->len >= 14 && is_local_unicast((const uint8_t *)p->payload)) {
+        return ERR_OK;
+    }
+
     // Per-client byte counting: dest MAC = client
     if (p != NULL && p->len >= 14) {
         const uint8_t *dst_mac = (const uint8_t *)p->payload;
@@ -289,6 +325,15 @@ void init_ap_netif_hooks(void) {
             ap_netif->linkoutput = ap_netif_linkoutput_hook;
 
             ESP_LOGI(TAG, "AP netif hooks initialized");
+        }
+    }
+    // Cache AP MAC for local-destination filtering
+    if (wifi_port_netif != NULL && !ap_mac_cached_valid) {
+        if (esp_netif_get_mac(wifi_port_netif, ap_mac_cached) == ESP_OK) {
+            ap_mac_cached_valid = true;
+            ESP_LOGI(TAG, "AP MAC cached: %02x:%02x:%02x:%02x:%02x:%02x",
+                     ap_mac_cached[0], ap_mac_cached[1], ap_mac_cached[2],
+                     ap_mac_cached[3], ap_mac_cached[4], ap_mac_cached[5]);
         }
     }
 }
