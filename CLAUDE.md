@@ -156,6 +156,10 @@ remote_console bind <ap,eth>      # Set interface binding
 syslog enable <server> [<port>]   # Enable syslog forwarding
 syslog disable                    # Disable syslog forwarding
 factory_reset                     # Erase all settings and restart
+# W5500 build only (CONFIG_ETH_UPLINK_W5500):
+set_spi_clock <MHz>              # Set W5500 SPI clock speed (saved to NVS, applied after restart)
+w5500 status                     # Show W5500 register diagnostics and SPI error counters
+w5500 reset                      # Soft-reset W5500 socket (no lwIP teardown)
 ```
 
 ## Web Interface

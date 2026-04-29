@@ -1,0 +1,79 @@
+# W5500 SPI Ethernet + ESP32-C3 SuperMini
+#
+# Wiring:
+#   W5500 MISO  -> GPIO5   W5500 MOSI  -> GPIO6
+#   W5500 SCLK  -> GPIO4   W5500 CS    -> GPIO7
+#   W5500 INT   -> GPIO3   W5500 RST   -> GPIO2
+#
+# Build:
+#   idf.py set-target esp32c3 -B build_w5500_c3 \
+#     -D SDKCONFIG=sdkconfig.w5500_c3 \
+#     -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.w5500_c3" \
+#     build
+#
+# Flash/monitor:
+#   idf.py -B build_w5500_c3 -p /dev/ttyACM0 flash monitor   # SuperMini (USB-JTAG)
+#   idf.py -B build_w5500_c3 -p /dev/ttyUSB0 flash monitor   # DevKit-M-1 (UART)
+
+# Select W5500 uplink driver
+CONFIG_ETH_UPLINK_W5500=y
+
+# Enable W5500 SPI Ethernet driver in ESP-IDF
+CONFIG_ETH_USE_SPI_ETHERNET=y
+CONFIG_ETH_SPI_ETHERNET_W5500=y
+
+# W5500 pin assignments
+CONFIG_ETH_SPI_HOST=1
+CONFIG_ETH_SPI_MISO_GPIO=5
+CONFIG_ETH_SPI_MOSI_GPIO=6
+CONFIG_ETH_SPI_SCLK_GPIO=4
+CONFIG_ETH_SPI_CS_GPIO=7
+CONFIG_ETH_SPI_INT_GPIO=3
+CONFIG_ETH_SPI_RST_GPIO=2
+
+# SPI clock speed — 27 rounds to the 80/3 = 26.67 MHz divider (25 would round down to 20)
+CONFIG_ETH_SPI_CLOCK_MHZ=27
+
+# Console: USB Serial/JTAG (the USB-C port on C3 SuperMini, shows up as /dev/ttyACM0).
+# initialize_console() sets O_NONBLOCK on stdin for this path, which linenoise requires.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
+
+# ESP32-C3 max CPU frequency is 160 MHz (no 240 MHz option)
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+# CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240 is not set
+
+# W5500 SPI polling starves IDLE task on single-core C3 — don't watch it
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=n
+
+# Raise main task priority so the REPL can compete with ETH MAC (priority 18)
+# and WiFi tasks on the single-core C3. Default is 1, which starves the console.
+CONFIG_ESP_MAIN_TASK_PRIO=5
+
+# Add RTC FAST memory (~8 KB) to heap to ease DMA SRAM pressure
+CONFIG_ESP_SYSTEM_ALLOW_RTC_FAST_MEM_AS_HEAP=y
+
+# SPI master hot path in IRAM (avoids flash cache misses during W5500 transfers
+# that compete with WiFi for the cache)
+CONFIG_SPI_MASTER_IN_IRAM=y
+CONFIG_SPI_MASTER_ISR_IN_IRAM=y
+
+# lwIP packet processing hot path in IRAM
+CONFIG_LWIP_IRAM_OPTIMIZATION=y
+
+# Optimize for speed (overrides any size-optimized base setting)
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+# CONFIG_COMPILER_OPTIMIZATION_SIZE is not set
+
+# WiFi buffers: default 48+48 TX/RX is tuned for AP throughput.
+# 16+16 dynamic is sufficient for bridge use and saves ~40 KB peak heap.
+# Static RX reduced to 6; RX_BA_WIN must be <= 2*STATIC_RX_BUFFER_NUM (IDF
+# enforces this at compile time), so cap it at 6 instead of the base default of 16.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_RX_BA_WIN=6
+
+# TCP windows: 2×MSS (2880) cuts per-socket overhead vs default 5760
+CONFIG_LWIP_TCP_SND_BUF_DEFAULT=2880
+CONFIG_LWIP_TCP_WND_DEFAULT=2880

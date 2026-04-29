@@ -41,6 +41,10 @@
 #include "esp_app_desc.h"
 #include "mdns_responder.h"
 
+#if defined(CONFIG_ETH_UPLINK_W5500)
+#include "w5500_spi_driver.h"
+#endif
+
 #ifdef CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS
 #define WITH_TASKS_INFO 1
 #endif
@@ -67,6 +71,10 @@ static void register_set_tx_power(void);
 static void register_remote_console_cmd(void);
 static void register_syslog_cmd(void);
 static void register_set_tz(void);
+#if defined(CONFIG_ETH_UPLINK_W5500)
+static void register_set_spi_clock(void);
+static void register_w5500(void);
+#endif
 
 /* Check if character is a valid hex digit */
 static inline int is_hex_digit(char c)
@@ -255,6 +263,10 @@ void register_router(void)
     register_remote_console_cmd();
     register_syslog_cmd();
     register_set_tz();
+#if defined(CONFIG_ETH_UPLINK_W5500)
+    register_set_spi_clock();
+    register_w5500();
+#endif
 }
 
 /** Arguments used by 'set_mgmt_ip' function */
@@ -861,6 +873,25 @@ static int show(int argc, char **argv)
 
         // Free heap
         printf("Free heap: %lu bytes\n", (unsigned long)esp_get_free_heap_size());
+
+#if defined(CONFIG_ETH_UPLINK_W5500)
+        {
+            int spi_mhz = CONFIG_ETH_SPI_CLOCK_MHZ;
+            get_config_param_int("spi_clk_mhz", &spi_mhz);
+            if (spi_mhz < 1 || spi_mhz > 80) spi_mhz = CONFIG_ETH_SPI_CLOCK_MHZ;
+            printf("SPI clock: %d MHz\n", spi_mhz);
+            w5500_spi_stats_t spi_stats = w5500_spi_get_stats();
+            if (spi_stats.read_spi_fail || spi_stats.read_timeout ||
+                spi_stats.write_spi_fail || spi_stats.write_timeout) {
+                printf("SPI errors: rd_fail=%"PRIu32" rd_timeout=%"PRIu32
+                       " wr_fail=%"PRIu32" wr_timeout=%"PRIu32"\n",
+                       spi_stats.read_spi_fail, spi_stats.read_timeout,
+                       spi_stats.write_spi_fail, spi_stats.write_timeout);
+            } else {
+                printf("SPI errors: none\n");
+            }
+        }
+#endif
 
         // AP interface state
         printf("AP interface: %s\n", ap_disabled ? "disabled" : "enabled");
@@ -1802,3 +1833,125 @@ static void register_set_tz(void)
     };
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
+
+#if defined(CONFIG_ETH_UPLINK_W5500)
+
+#define _STRINGIFY(x) #x
+#define STRINGIFY(x)  _STRINGIFY(x)
+
+/* 'set_spi_clock' — W5500 SPI clock speed (saved to NVS, applied after restart) */
+static struct {
+    struct arg_int *mhz;
+    struct arg_end *end;
+} set_spi_clock_arg;
+
+static int set_spi_clock_cmd(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **) &set_spi_clock_arg);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, set_spi_clock_arg.end, argv[0]);
+        return 1;
+    }
+    int mhz = set_spi_clock_arg.mhz->ival[0];
+    if (mhz < 1 || mhz > 80) {
+        printf("SPI clock must be 1-80 MHz\n");
+        return 1;
+    }
+    esp_err_t err = set_config_param_int("spi_clk_mhz", mhz);
+    if (err == ESP_OK) {
+        printf("W5500 SPI clock set to %d MHz. Restart to apply\n", mhz);
+    }
+    return (err == ESP_OK) ? 0 : 1;
+}
+
+static void register_set_spi_clock(void)
+{
+    set_spi_clock_arg.mhz = arg_int1(NULL, NULL, "<MHz>", "SPI clock speed in MHz (1-80, default: " STRINGIFY(CONFIG_ETH_SPI_CLOCK_MHZ) ")");
+    set_spi_clock_arg.end = arg_end(1);
+    const esp_console_cmd_t cmd = {
+        .command = "set_spi_clock",
+        .help = "Set W5500 SPI clock speed in MHz (1-80). Saved to NVS, applied after restart.",
+        .hint = " <MHz>",
+        .func = &set_spi_clock_cmd,
+        .argtable = &set_spi_clock_arg
+    };
+    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
+/* 'w5500' — diagnostics and socket recovery */
+static struct {
+    struct arg_str *action;
+    struct arg_end *end;
+} w5500_arg;
+
+static int w5500_cmd(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&w5500_arg);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, w5500_arg.end, argv[0]);
+        return 1;
+    }
+    const char *action = w5500_arg.action->sval[0];
+
+    if (strcmp(action, "status") == 0) {
+        w5500_diag_t d;
+        if (w5500_get_diag(&d) != ESP_OK) {
+            printf("W5500 not available (MAC not initialised)\n");
+            return 1;
+        }
+        printf("W5500 Diagnostics:\n");
+        printf("  Chip version : 0x%02x%s\n", d.version, d.version == 0x04 ? " (OK)" : " (unexpected!)");
+        printf("  PHY config   : 0x%02x  LNK=%d SPD=%d DPX=%d\n",
+               d.phycfgr, d.phycfgr & 1, (d.phycfgr >> 1) & 1, (d.phycfgr >> 2) & 1);
+        printf("  Socket mode  : 0x%02x%s\n", d.sock_mr,
+               (d.sock_mr & 0x0F) == 0x04 ? " (MAC_RAW OK)" : " (wrong!)");
+        printf("  Socket status: 0x%02x%s\n", d.sock_sr,
+               d.sock_sr == 0x42 ? " (MACRAW open OK)" : " (not open!)");
+        printf("  Socket IR/IMR: 0x%02x / 0x%02x\n", d.sock_ir, d.sock_imr);
+        printf("  TX free/rd/wr: %u / %u / %u\n", d.tx_fsr, d.tx_rd, d.tx_wr);
+        printf("  RX rsr/rd/wr : %u / %u / %u\n", d.rx_rsr, d.rx_rd, d.rx_wr);
+        if ((d.sock_mr & 0x0F) != 0x04) {
+            printf("  *** Mode is wrong (expected 0xA4) — W5500 may have reset; run 'w5500 reset'\n");
+        }
+        if (d.sock_sr != 0x42 && (d.phycfgr & 1)) {
+            printf("  *** Socket CLOSED with link UP — run 'w5500 reset'\n");
+        }
+        w5500_spi_stats_t spi = w5500_spi_get_stats();
+        printf("  SPI errors   : rd_fail=%"PRIu32" rd_timeout=%"PRIu32
+               " wr_fail=%"PRIu32" wr_timeout=%"PRIu32"\n",
+               spi.read_spi_fail, spi.read_timeout,
+               spi.write_spi_fail, spi.write_timeout);
+    } else if (strcmp(action, "reset") == 0) {
+        esp_err_t err = w5500_reset_socket();
+        if (err == ESP_ERR_INVALID_STATE) {
+            printf("W5500 MAC not initialised\n");
+            return 1;
+        } else if (err != ESP_OK) {
+            printf("W5500 socket reset failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("W5500 socket reset complete.\n");
+    } else {
+        printf("Unknown action '%s'. Use: w5500 status | w5500 reset\n", action);
+        return 1;
+    }
+    return 0;
+}
+
+static void register_w5500(void)
+{
+    w5500_arg.action = arg_str1(NULL, NULL, "<status|reset>",
+                                "status: read W5500 registers and show diagnostics\n"
+                                "  reset:  soft-reset W5500 socket (no lwIP teardown)");
+    w5500_arg.end = arg_end(1);
+    const esp_console_cmd_t cmd = {
+        .command = "w5500",
+        .help = "W5500 diagnostics and recovery. Usage: w5500 <status|reset>",
+        .hint = " <status|reset>",
+        .func = &w5500_cmd,
+        .argtable = &w5500_arg
+    };
+    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+
+#endif // CONFIG_ETH_UPLINK_W5500

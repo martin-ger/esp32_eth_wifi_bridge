@@ -12,21 +12,86 @@ endmenu
 
 menu "Bridge Configuration"
 
+    choice ETH_UPLINK_TYPE
+        prompt "Ethernet driver"
+        default ETH_UPLINK_EMAC
+        config ETH_UPLINK_EMAC
+            bool "Internal EMAC (WT32-ETH01 / LAN8720)"
+        config ETH_UPLINK_W5500
+            bool "SPI Ethernet W5500 (ESP32-C3)"
+    endchoice
+
+    # --- Internal EMAC options (WT32-ETH01) ---
+
     config ETH_MDC_GPIO
         int "ETH MDC GPIO"
         default 23
+        depends on ETH_UPLINK_EMAC
 
     config ETH_MDIO_GPIO
         int "ETH MDIO GPIO"
         default 18
+        depends on ETH_UPLINK_EMAC
 
     config ETH_PHY_ADDR
         int "ETH PHY address"
         default 1
+        depends on ETH_UPLINK_EMAC
 
     config ETH_PHY_POWER_GPIO
         int "ETH PHY power GPIO (-1 for none)"
         default 16
+        depends on ETH_UPLINK_EMAC
+
+    # --- W5500 SPI Ethernet options ---
+
+    config ETH_SPI_HOST
+        int "SPI host number (1=SPI2_HOST, 2=SPI3_HOST)"
+        default 1
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_MISO_GPIO
+        int "W5500 MISO GPIO"
+        default 5
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_MOSI_GPIO
+        int "W5500 MOSI GPIO"
+        default 6
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_SCLK_GPIO
+        int "W5500 SCLK GPIO"
+        default 4
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_CS_GPIO
+        int "W5500 CS (SCS) GPIO"
+        default 7
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_INT_GPIO
+        int "W5500 INT GPIO"
+        default 3
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_RST_GPIO
+        int "W5500 RST GPIO (-1 to disable)"
+        default 2
+        depends on ETH_UPLINK_W5500
+
+    config ETH_SPI_CLOCK_MHZ
+        int "W5500 SPI clock speed (MHz)"
+        default 27
+        range 1 80
+        depends on ETH_UPLINK_W5500
+        help
+            Upper bound for SPI clock; the driver rounds DOWN to the nearest
+            divider of the 80 MHz APB clock. Achievable values: 80, 40, 26.67,
+            20, 16, 13.33, 11.43, 10, ... MHz. Setting e.g. 25 rounds to 20;
+            set 27 to land on 26.67.
+
+    # --- Common ---
 
     config BRIDGE_FDB_MAX_ENTRIES
         int "Bridge FDB max dynamic entries"

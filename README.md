@@ -1,6 +1,6 @@
-# ESP32 Ethernet-WiFi Bridge (Classic WiFi AP)
+# ESP32 Ethernet-WiFi Bridge
 
-Firmware for the **[WT32-ETH01](https://github.com/egnor/wt32-eth01)** board that creates a plain transparent Layer 2 bridge between its Ethernet port and a WiFi access point. Devices connected via Ethernet appear directly on the WiFi network — no NAT, no routing, no separate subnet. Performance tests have shown 18 mbps downstream and 11 mbps upstream.
+Firmware that creates a plain transparent Layer 2 bridge between an Ethernet port and a WiFi access point. Devices on both sides appear on the same network — no NAT, no routing, no separate subnet.
 
 **Derived from** [esp32_nat_router](https://github.com/martin-ger/esp32_nat_router). The original project is a WiFi NAT router with lot of additional features. This variant operates as a **pure L2 bridge**: the Ethernet port and WiFi AP share a single broadcast domain, and all frames are forwarded transparently at the MAC layer.
 
@@ -9,6 +9,48 @@ Firmware for the **[WT32-ETH01](https://github.com/egnor/wt32-eth01)** board tha
 All WiFi clients receive their IP addresses from the upstream network's DHCP server and are directly reachable from the wired side. The bridge itself can optionally obtain a management IP (static or DHCP) for web access and remote administration.
 
 All settings are managed through a browser-based web interface or via the serial console at 115200 bps.
+
+---
+
+## Supported Hardware
+
+Two compile-time variants are provided. Both expose the same feature set and CLI.
+
+### WT32-ETH01 (default)
+
+ESP32 module with an integrated LAN8720 Ethernet PHY.
+
+| Parameter | Value |
+|-----------|-------|
+| SoC | ESP32 (dual-core 240 MHz) |
+| Flash | 4 MB |
+| Ethernet PHY | LAN8720 (internal EMAC) |
+| Ethernet MDC | GPIO 23 |
+| Ethernet MDIO | GPIO 18 |
+| PHY address | 1 |
+| PHY power | GPIO 16 |
+| Status LED | GPIO 2 (configurable) |
+| Serial | 115200 bps (UART0) |
+
+### ESP32-C3 SuperMini + W5500
+
+ESP32-C3 module with a W5500 SPI Ethernet chip. Default wiring (all pins configurable via `menuconfig`):
+
+| W5500 pin | GPIO |
+|-----------|------|
+| MISO | 5 |
+| MOSI | 6 |
+| SCLK | 4 |
+| CS | 7 |
+| INT | 3 |
+| RST | 2 |
+
+| Parameter | Value |
+|-----------|-------|
+| SoC | ESP32-C3 (single-core 160 MHz) |
+| Flash | 4 MB |
+| Ethernet | W5500 via SPI (~26.67 MHz) |
+| Serial | 115200 bps (USB Serial/JTAG, `/dev/ttyACM0`) |
 
 ---
 
@@ -37,23 +79,8 @@ All settings are managed through a browser-based web interface or via the serial
 
 ---
 
-## Hardware — WT32-ETH01
+## LED Behavior
 
-The WT32-ETH01 is an ESP32-based module with an integrated LAN8720 Ethernet PHY. It exposes both a standard WiFi radio and a 10/100 Mbit/s Ethernet port on the same board.
-
-| Parameter | Value |
-|-----------|-------|
-| SoC | ESP32 (dual-core 240 MHz) |
-| Flash | 4 MB |
-| Ethernet PHY | LAN8720 |
-| Ethernet MDC | GPIO 23 |
-| Ethernet MDIO | GPIO 18 |
-| PHY address | 1 |
-| PHY power | GPIO 16 |
-| Status LED | GPIO 2 (configurable) |
-| Serial | 115200 bps |
-
-**LED behavior:**
 - Solid on: Ethernet link up (idle)
 - Solid off: Ethernet link down
 - Flickering: network traffic activity
@@ -229,40 +256,80 @@ Connect via serial at 115200 bps, or via the remote console.
 | `light_sleep [--time <ms>] [--io <gpio>]...` | Enter light sleep |
 | `factory_reset` | Erase all NVS settings and reboot |
 
+### W5500 Build Only (ESP32-C3 + W5500)
+
+| Command | Description |
+|---------|-------------|
+| `set_spi_clock <MHz>` | Set W5500 SPI clock speed (1–80 MHz). Saved to NVS, applied after restart |
+| `w5500 status` | Show W5500 register snapshot and SPI error counters |
+| `w5500 reset` | Soft-reset W5500 socket without disturbing lwIP or bridge state |
+
+`show status` also prints the active SPI clock and any SPI error counts when running the W5500 build.
+
 ---
 
 ## Building
 
-Requires ESP-IDF v5.x. Source the ESP-IDF environment, then run the provided build script:
+Requires ESP-IDF v5.x. Source the ESP-IDF environment first:
 
 ```bash
 . $IDF_PATH/export.sh
+```
+
+### WT32-ETH01 (default)
+
+```bash
 ./build_firmware.sh
 ```
 
-The script performs a clean build and copies the four binary files into the `firmware/` directory:
+Performs a clean build and copies binaries to `firmware/`:
 
 ```
 firmware/
 ├── bootloader.bin
 ├── partition-table.bin
 ├── ota_data_initial.bin
-└── esp32_eth_router.bin
+└── esp32_eth_wifi_bridge.bin
 ```
 
-To reconfigure build options before building:
+To reconfigure before building:
 
 ```bash
 idf.py -B build_eth_sta menuconfig
 ```
 
-OTA updates are also supported through the web interface (Device Management section) with partition rollback on failed updates.
+### ESP32-C3 + W5500
+
+```bash
+./build_firmware_w5500_c3.sh
+```
+
+Performs a clean build targeting `esp32c3` and copies binaries to `firmware_w5500_c3/`:
+
+```
+firmware_w5500_c3/
+├── bootloader.bin
+├── partition-table.bin
+├── ota_data_initial.bin
+└── esp32_eth_wifi_bridge.bin
+```
+
+To reconfigure before building:
+
+```bash
+idf.py set-target esp32c3 -B build_w5500_c3 \
+  -D SDKCONFIG=sdkconfig.w5500_c3 \
+  -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.w5500_c3" \
+  menuconfig
+```
+
+OTA updates are supported through the web interface (Device Management section) with partition rollback on failed updates.
 
 ---
 
 ## Installation
 
-Flash the binaries from the `firmware/` directory using `esptool.py`:
+### WT32-ETH01
 
 ```bash
 esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 \
@@ -273,6 +340,22 @@ esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 \
   0x20000 firmware/esp32_eth_wifi_bridge.bin
 ```
 
+### ESP32-C3 + W5500
+
+```bash
+# SuperMini (USB-JTAG port):
+esptool.py --chip esp32c3 --port /dev/ttyACM0 --baud 460800 \
+  write_flash \
+  0x0000  firmware_w5500_c3/bootloader.bin \
+  0x8000  firmware_w5500_c3/partition-table.bin \
+  0xf000  firmware_w5500_c3/ota_data_initial.bin \
+  0x20000 firmware_w5500_c3/esp32_eth_wifi_bridge.bin
+```
+
+Note: the ESP32-C3 bootloader flashes to `0x0000` (not `0x1000` as on classic ESP32).
+
+### First-time setup (both variants)
+
 After flashing, connect via serial at 115200 bps and configure the WiFi AP:
 
 ```
@@ -280,9 +363,7 @@ set_ap MyWiFiSSID MyPassword
 restart
 ```
 
-The bridge will reboot. Connect a WiFi client to the AP — it will receive an IP from the upstream network's DHCP server via the Ethernet uplink. You can then access the bridge via mDNS at `http://esp32-bridge.local`:
-
-You can set a static management IP for web access if required, e.g.:
+The bridge will reboot. Connect a WiFi client to the AP — it will receive an IP from the upstream network's DHCP server. You can then access the web interface at `http://esp32-bridge.local` (mDNS) or set a static management IP:
 
 ```
 set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
@@ -294,8 +375,12 @@ To erase all settings and return to defaults:
 factory_reset
 ```
 
-or via esptool to wipe the entire flash:
+or via esptool (full flash wipe):
 
 ```bash
+# ESP32 (WT32-ETH01)
 esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
+
+# ESP32-C3 + W5500
+esptool.py --chip esp32c3 --port /dev/ttyACM0 erase_flash
 ```

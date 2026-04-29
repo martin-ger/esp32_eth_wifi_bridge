@@ -37,6 +37,12 @@
 #include "esp_netif.h"
 #include "esp_netif_br_glue.h"
 
+#if defined(CONFIG_ETH_UPLINK_W5500)
+#include "driver/spi_master.h"
+#include "esp_eth_mac_spi.h"
+#include "w5500_spi_driver.h"
+#endif
+
 #include "lwip/opt.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -304,7 +310,48 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     // --- Ethernet driver ---
-    // Power on LAN8720 PHY via GPIO before EMAC init (WT32-ETH01)
+#if defined(CONFIG_ETH_UPLINK_W5500)
+    // W5500 SPI Ethernet (ESP32-C3)
+    gpio_install_isr_service(0);
+
+    spi_bus_config_t buscfg = {
+        .miso_io_num   = CONFIG_ETH_SPI_MISO_GPIO,
+        .mosi_io_num   = CONFIG_ETH_SPI_MOSI_GPIO,
+        .sclk_io_num   = CONFIG_ETH_SPI_SCLK_GPIO,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+    };
+    ESP_ERROR_CHECK(spi_bus_initialize(CONFIG_ETH_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
+
+    spi_device_interface_config_t devcfg = {
+        .command_bits  = 16,
+        .address_bits  = 8,
+        .mode          = 0,
+        .spics_io_num  = CONFIG_ETH_SPI_CS_GPIO,
+        .queue_size    = 4,
+    };
+
+    int spi_mhz = CONFIG_ETH_SPI_CLOCK_MHZ;
+    get_config_param_int("spi_clk_mhz", &spi_mhz);
+    if (spi_mhz < 1 || spi_mhz > 80) spi_mhz = CONFIG_ETH_SPI_CLOCK_MHZ;
+    devcfg.clock_speed_hz = spi_mhz * 1000 * 1000;
+    ESP_LOGI(TAG, "W5500 SPI clock %d MHz", spi_mhz);
+
+    eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(CONFIG_ETH_SPI_HOST, &devcfg);
+    w5500_config.int_gpio_num = CONFIG_ETH_SPI_INT_GPIO;
+    w5500_spi_driver_config(&w5500_config.custom_spi_driver, &w5500_config);
+
+    eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
+    // Run above lwIP (18) so W5500 INT wakeup preempts tcpip_thread immediately
+    mac_config.rx_task_prio = 19;
+    esp_eth_mac_t *mac = esp_eth_mac_new_w5500(&w5500_config, &mac_config);
+
+    eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
+    phy_config.reset_gpio_num = CONFIG_ETH_SPI_RST_GPIO;
+    esp_eth_phy_t *phy = esp_eth_phy_new_w5500(&phy_config);
+
+#elif defined(CONFIG_ETH_UPLINK_EMAC)
+    // Internal EMAC + LAN8720 (WT32-ETH01)
 #if CONFIG_ETH_PHY_POWER_GPIO >= 0
     gpio_config_t phy_power_cfg = {
         .pin_bit_mask = (1ULL << CONFIG_ETH_PHY_POWER_GPIO),
@@ -325,9 +372,24 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     phy_config.phy_addr = CONFIG_ETH_PHY_ADDR;
     phy_config.reset_gpio_num = -1;
     esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
+#else
+#error "No Ethernet driver selected. Set CONFIG_ETH_UPLINK_W5500 or CONFIG_ETH_UPLINK_EMAC in sdkconfig."
+#endif  // ETH_UPLINK_TYPE
 
     esp_eth_config_t config = ETH_DEFAULT_CONFIG(mac, phy);
     ESP_ERROR_CHECK(esp_eth_driver_install(&config, &eth_handle));
+
+#if defined(CONFIG_ETH_UPLINK_W5500)
+    // W5500 lacks a factory MAC — derive one from the chip's base MAC
+    {
+        uint8_t w5500_mac[6];
+        ESP_ERROR_CHECK(esp_read_mac(w5500_mac, ESP_MAC_ETH));
+        ESP_ERROR_CHECK(esp_eth_ioctl(eth_handle, ETH_CMD_S_MAC_ADDR, w5500_mac));
+        ESP_LOGI(TAG, "W5500 MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+                 w5500_mac[0], w5500_mac[1], w5500_mac[2],
+                 w5500_mac[3], w5500_mac[4], w5500_mac[5]);
+    }
+#endif
 
     // --- ETH port netif (no IP, bridge port) ---
     esp_netif_inherent_config_t eth_netif_config = ESP_NETIF_INHERENT_DEFAULT_ETH();
