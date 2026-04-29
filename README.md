@@ -52,6 +52,8 @@ ESP32-C3 module with a W5500 SPI Ethernet chip. Default wiring (all pins configu
 | Ethernet | W5500 via SPI (~26.67 MHz) |
 | Serial | 115200 bps (USB Serial/JTAG, `/dev/ttyACM0`) |
 
+More details this setup can be found in this [repo](https://github.com/martin-ger/esp32_ethernet_router).
+
 ---
 
 ## Use Cases
