@@ -79,6 +79,7 @@ typedef struct {
     uint32_t poll_period_ms;
     uint8_t addr[ETH_ADDR_LEN];
     bool packets_remain;
+    bool promiscuous;
     uint8_t *rx_buffer;
     uint8_t mcast_cnt;
     uint32_t tx_tmo;
@@ -387,8 +388,12 @@ static esp_err_t w5500_setup_default(emac_w5500_t *emac)
     /* Disable interrupt for all sockets by default */
     reg_value = 0;
     ESP_GOTO_ON_ERROR(w5500_write(emac, W5500_REG_SIMR, &reg_value, sizeof(reg_value)), err, TAG, "write SIMR failed");
-    /* Enable MAC RAW mode for SOCK0, enable MAC filter, no blocking broadcast and block multicast */
-    reg_value = W5500_SMR_MAC_RAW | W5500_SMR_MAC_FILTER | W5500_SMR_MAC_BLOCK_MCAST;
+    /* Enable MAC RAW mode for SOCK0; omit MAC_FILTER when promiscuous so the chip
+     * passes unicast frames addressed to other MACs (needed for L2 bridge). */
+    reg_value = W5500_SMR_MAC_RAW | W5500_SMR_MAC_BLOCK_MCAST;
+    if (!emac->promiscuous) {
+        reg_value |= W5500_SMR_MAC_FILTER;
+    }
     ESP_GOTO_ON_ERROR(w5500_write(emac, W5500_REG_SOCK_MR(0), &reg_value, sizeof(reg_value)), err, TAG, "write SMR failed");
     /* Enable receive and send-done events for SOCK0 */
     reg_value = W5500_SIR_RECV | W5500_SIR_SEND;
@@ -649,6 +654,7 @@ static esp_err_t emac_w5500_set_promiscuous(esp_eth_mac_t *mac, bool enable)
 {
     esp_err_t ret = ESP_OK;
     emac_w5500_t *emac = __containerof(mac, emac_w5500_t, parent);
+    emac->promiscuous = enable;
     uint8_t smr = 0;
     ESP_GOTO_ON_ERROR(w5500_read(emac, W5500_REG_SOCK_MR(0), &smr, sizeof(smr)), err, TAG, "read SMR failed");
     if (enable) {
@@ -937,7 +943,7 @@ static void emac_w5500_task(void *arg)
              * 0x00 (TCP default) and buffer sizes shrink to 2KB. */
             uint8_t sock_mr = 0;
             if (w5500_read(emac, W5500_REG_SOCK_MR(0), &sock_mr, sizeof(sock_mr)) == ESP_OK
-                    && sock_mr != (W5500_SMR_MAC_RAW | W5500_SMR_MAC_FILTER | W5500_SMR_MAC_BLOCK_MCAST)) {
+                    && !(sock_mr & W5500_SMR_MAC_RAW)) {
                 ESP_LOGW(TAG, "W5500 register reset detected (SOCK_MR=0x%02X) — re-initialising", sock_mr);
                 w5500_reopen_socket(emac);
             }

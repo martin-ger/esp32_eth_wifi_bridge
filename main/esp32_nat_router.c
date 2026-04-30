@@ -494,12 +494,14 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &eth_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_ap_event_handler, NULL));
 
-    // Enable promiscuous mode on ETH (required for bridge MAC forwarding)
-    bool promiscuous = true;
-    esp_eth_ioctl(eth_handle, ETH_CMD_S_PROMISCUOUS, &promiscuous);
-
     // Start interfaces
     ESP_ERROR_CHECK(esp_eth_start(eth_handle));
+
+    // Enable promiscuous mode on ETH (required for bridge MAC forwarding).
+    // Must be called after esp_eth_start() so the MACRAW socket is open; the
+    // driver stores the flag and re-applies it on every socket reopen (link-down recovery).
+    bool promiscuous = true;
+    esp_eth_ioctl(eth_handle, ETH_CMD_S_PROMISCUOUS, &promiscuous);
     if (!ap_disabled) {
         ESP_ERROR_CHECK(esp_wifi_start());
     } else {

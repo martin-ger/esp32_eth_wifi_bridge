@@ -45,6 +45,10 @@
 #include "w5500_spi_driver.h"
 #endif
 
+#if CONFIG_IDF_TARGET_ESP32C3
+#include "driver/temperature_sensor.h"
+#endif
+
 #ifdef CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS
 #define WITH_TASKS_INFO 1
 #endif
@@ -868,11 +872,15 @@ static int show(int argc, char **argv)
             printf("Management IP: none\n");
         }
 
+        // AP interface state
+        printf("AP interface: %s\n", ap_disabled ? "disabled" : "enabled");
+
+        // Connected WiFi clients
+        resync_connect_count();
+        printf("Connected WiFi clients: %u\n", connect_count);
+
         // Byte counts
         printf("Bytes sent/received: %" PRIu64 " / %" PRIu64 " bytes\n", get_sta_bytes_sent(), get_sta_bytes_received());
-
-        // Free heap
-        printf("Free heap: %lu bytes\n", (unsigned long)esp_get_free_heap_size());
 
 #if defined(CONFIG_ETH_UPLINK_W5500)
         {
@@ -891,16 +899,24 @@ static int show(int argc, char **argv)
                 printf("SPI errors: none\n");
             }
         }
+        {
+            float tsens = 0.0f;
+            temperature_sensor_handle_t tsens_handle = NULL;
+            temperature_sensor_config_t tsens_cfg = TEMPERATURE_SENSOR_CONFIG_DEFAULT(20, 100);
+            //temperature_sensor_config_t tsens_cfg = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
+            temperature_sensor_install(&tsens_cfg, &tsens_handle);
+            temperature_sensor_enable(tsens_handle);
+            temperature_sensor_get_celsius(tsens_handle, &tsens);
+            temperature_sensor_disable(tsens_handle);
+            temperature_sensor_uninstall(tsens_handle);
+            printf("CPU temperature: %.1f C\n", tsens);
+        }
 #endif
-
-        // AP interface state
-        printf("AP interface: %s\n", ap_disabled ? "disabled" : "enabled");
-
-        // Connected WiFi clients
-        resync_connect_count();
-        printf("Connected WiFi clients: %u\n", connect_count);
+        // Free heap
+        printf("Free heap: %lu bytes\n", (unsigned long)esp_get_free_heap_size());
+        
+        // List connected stations from WiFi driver
         if (connect_count > 0) {
-            // List connected stations from WiFi driver
             wifi_sta_list_t sta_list;
             if (esp_wifi_ap_get_sta_list(&sta_list) == ESP_OK && sta_list.num > 0) {
                 // Fetch per-client traffic stats
