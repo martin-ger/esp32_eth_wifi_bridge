@@ -266,7 +266,7 @@ Connect via serial at 115200 bps, or via the remote console.
 | `w5500 status` | Show W5500 register snapshot and SPI error counters |
 | `w5500 reset` | Soft-reset W5500 socket without disturbing lwIP or bridge state |
 
-`show status` also prints the active SPI clock and any SPI error counts when running the W5500 build.
+`show status` also prints the active SPI clock and any SPI error counts when running the W5500 build. The ESP32c3 also reports its CPU temperature.
 
 ---
 
