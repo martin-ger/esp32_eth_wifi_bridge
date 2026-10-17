@@ -67,7 +67,7 @@ esp_err_t remote_console_init(void);
  *
  * Saves state to NVS and starts the server.
  *
- * @return ESP_OK on success
+ * @return ESP_OK on success, ESP_ERR_INVALID_STATE if no password is set
  */
 esp_err_t remote_console_enable(void);
 

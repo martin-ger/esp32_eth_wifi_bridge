@@ -302,6 +302,10 @@ esp_err_t remote_console_init(void) {
 }
 
 esp_err_t remote_console_enable(void) {
+    if (!is_web_password_set()) {
+        return ESP_ERR_INVALID_STATE;  /* Refuse without a password */
+    }
+
     if (rc_config.enabled) {
         return ESP_OK;  /* Already enabled */
     }
@@ -582,11 +586,12 @@ static int recv_line(int fd, char *buf, size_t max_len, uint32_t timeout_sec) {
 static bool authenticate_client(int client_fd) {
     char password_input[64];
 
-    /* If no password set, skip authentication */
+    /* No password, no session: the console is a full CLI, and the password
+     * may have been cleared after the service was enabled. */
     if (!is_web_password_set()) {
-        ESP_LOGW(TAG, "No password set - allowing unauthenticated access");
-        send_string(client_fd, "WARNING: No password set. Use 'set_router_password' to secure access.\r\n");
-        return true;
+        ESP_LOGW(TAG, "No password set - rejecting remote console session");
+        send_string(client_fd, "No password set. Use 'set_router_password' on the serial console first.\r\n");
+        return false;
     }
 
     for (int attempt = 0; attempt < RC_MAX_AUTH_ATTEMPTS; attempt++) {

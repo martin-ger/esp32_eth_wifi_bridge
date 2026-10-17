@@ -586,7 +586,6 @@ char* gateway_addr = NULL;
 uint8_t* ap_mac = NULL;
 char* ap_ssid = NULL;
 char* ap_passwd = NULL;
-char* ap_dns = NULL;
 char* hostname = NULL;
 
 bool     dhcps_enabled   = false;
@@ -651,8 +650,6 @@ void app_main(void)
     if (ap_ssid == NULL) ap_ssid = param_set_default(DEFAULT_HOSTNAME);
     get_config_param_str("ap_passwd", &ap_passwd);
     if (ap_passwd == NULL) ap_passwd = param_set_default("");
-    get_config_param_str("ap_dns", &ap_dns);
-    if (ap_dns == NULL) ap_dns = param_set_default("");
     get_config_param_str("hostname", &hostname);
     if (hostname == NULL || hostname[0] == '\0') hostname = param_set_default(DEFAULT_HOSTNAME);
 

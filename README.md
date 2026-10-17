@@ -14,7 +14,7 @@ All settings are managed through a browser-based web interface or via the serial
 
 ## Supported Hardware
 
-Two compile-time variants are provided. Both expose the same feature set and CLI.
+Three compile-time variants are provided. All expose the same feature set and CLI.
 
 ### WT32-ETH01 (default)
 
@@ -29,7 +29,7 @@ ESP32 module with an integrated LAN8720 Ethernet PHY.
 | Ethernet MDIO | GPIO 18 |
 | PHY address | 1 |
 | PHY power | GPIO 16 |
-| Status LED | GPIO 2 (configurable) |
+| Status LED | none by default; set with `set_led_gpio` (e.g. `set_led_gpio 2`) |
 | Serial | 115200 bps (UART0) |
 
 ### ESP32-C3 SuperMini + W5500
@@ -54,7 +54,7 @@ If the W5500 INT and/or RST lines are not connected to the SoC, set `CONFIG_ETH_
 | Ethernet | W5500 via SPI (~26.67 MHz) |
 | Serial | 115200 bps (USB Serial/JTAG, `/dev/ttyACM0`) |
 
-More details this setup can be found in this [repo](https://github.com/martin-ger/esp32_ethernet_router).
+More details on this setup can be found in this [repo](https://github.com/martin-ger/esp32_ethernet_router).
 
 ### ESP32-S3 + W5500 (YelloByte YB-ESP32-S3-ETH)
 
@@ -84,7 +84,7 @@ With the INT/RST solder bridges open (factory state) the defaults use `INT=-1` (
 
 - **Wireless extension for a wired network** — add WiFi access to a switch or router that has no wireless capability (classic WiFi AP)
 - **Transparent monitoring tap** — capture and inspect all bridged traffic in Wireshark without any client changes
-- **Stand-alone Ethernet/WiFi network** — set up a self-contained combined Ethernet/WiFi network segment (using the build-in DHCP server)
+- **Stand-alone Ethernet/WiFi network** — set up a self-contained combined Ethernet/WiFi network segment (using the built-in DHCP server)
 
 ---
 
@@ -128,10 +128,10 @@ Shows current connection state: Ethernet link status, management IP, connected W
 
 Grouped into sections. Changes trigger a reboot to apply.
 
-- *AP Settings* — SSID, password, channel, authentication mode (WPA2/WPA3), hidden SSID, enable/disable
+- *AP Settings* — SSID, password (or open network), channel, WiFi country, authentication mode (WPA2/WPA3), hidden SSID, enable/disable
 - *Management IP* — static IP, subnet mask, gateway; leave empty to use DHCP
 - *DHCP Server* — enable/disable, pool start/end, lease time, DNS override
-- *DNS Server* — override DNS for AP clients
+- *Hostname* — DHCP/mDNS hostname
 - *Remote Console* — enable/disable, port, interface binding (AP/ETH), idle timeout
 - *PCAP Packet Capture* — on/off toggle, snaplen
 - *Device Management* — OTA firmware upload, factory reset
@@ -163,7 +163,7 @@ dhcps enable
 restart
 ```
 
-After reboot, devices connecting to the WiFi AP or Ethernet port will receive addresses from the configured pool. The bridge IP (192.168.10.1 in the example above) is used as the default gateway and DNS server unless overridden:
+After reboot, devices connecting to the WiFi AP or Ethernet port will receive addresses from the configured pool. Clients get the gateway configured with `set_mgmt_ip` as their default route (192.168.10.1 in the example above) and the bridge IP as their DNS server unless overridden:
 
 ```
 dhcps dns 8.8.8.8
@@ -203,7 +203,7 @@ Connect from a workstation on the network:
 nc <bridge-ip> 19000 | wireshark -k -i -
 ```
 
-The connection command is also shown in the PCAP section of the Configuration page. Snaplen limits the captured bytes per packet (64-1600, default 1600).
+The connection command is also shown in the PCAP section of the Configuration page. Snaplen limits the captured bytes per packet (64-1600, default 96; 64 on the ESP32-C3).
 
 ---
 
@@ -227,7 +227,7 @@ Default port is 2323. Connect with any TCP client:
 nc <bridge-ip> 2323
 ```
 
-The service is disabled by default. A web password must be set before enabling it. Idle sessions are disconnected after the configured timeout (default 300 seconds; 0 disables the timeout). Only one session is active at a time.
+The service is disabled by default. A web password must be set before enabling it; if the password is cleared later, new sessions are refused until one is set again. Idle sessions are disconnected after the configured timeout (default 300 seconds; 0 disables the timeout). Only one session is active at a time.
 
 The `bind` option controls which network interfaces the server listens on (AP = WiFi access point, ETH = Ethernet uplink).
 
@@ -257,7 +257,6 @@ Connect via serial at 115200 bps, or via the remote console.
 |---------|-------------|
 | `show config` | AP and Ethernet configuration |
 | `set_ap <ssid> <password>` | Set WiFi AP credentials |
-| `set_ap_dns <dns>` | Set DNS server for AP clients |
 | `set_ap_mac <mac>` | Override AP MAC address |
 | `set_ap_hidden <on\|off>` | Hide or show AP SSID |
 | `set_ap_auth <wpa2\|wpa3\|wpa2wpa3>` | Set AP authentication mode |

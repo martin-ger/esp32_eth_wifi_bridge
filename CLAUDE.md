@@ -127,7 +127,6 @@ Connect at 115200 bps. Key commands:
 set_ap <ssid> <passwd>            # Configure WiFi AP
 set_mgmt_ip <ip> <subnet> <gw>   # Set management IP
 set_mgmt_ip dhcp                  # Revert to DHCP (requires restart)
-set_ap_dns <dns>                  # Set DNS for AP clients
 set_ap_mac <AA> <BB> <CC> <DD> <EE> <FF>  # Override AP MAC
 set_ap_hidden <on|off>            # Hide/show AP SSID
 set_ap_auth <wpa2|wpa3|wpa2wpa3>  # Set AP auth mode

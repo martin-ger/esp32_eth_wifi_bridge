@@ -953,7 +953,9 @@ static esp_err_t config_get_handler(httpd_req_t *req)
                 if (httpd_query_key_value(buf, "rc_enabled", param1, sizeof(param1)) == ESP_OK) {
                     preprocess_string(param1);
                     if (strcmp(param1, "1") == 0) {
-                        remote_console_enable();
+                        if (remote_console_enable() == ESP_ERR_INVALID_STATE) {
+                            ESP_LOGW(TAG, "Remote console not enabled: no password set");
+                        }
                     } else {
                         remote_console_disable();
                     }
