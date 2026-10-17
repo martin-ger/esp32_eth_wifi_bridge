@@ -1,6 +1,7 @@
 build/**
 build_eth_sta/**
 build_w5500_c3/**
+build_w5500_s3/**
 .pio*
 .vscode
 .vscode/*

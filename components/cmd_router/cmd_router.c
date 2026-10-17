@@ -47,7 +47,8 @@
 #include "w5500_spi_driver.h"
 #endif
 
-#if CONFIG_IDF_TARGET_ESP32C3
+#include "soc/soc_caps.h"
+#if SOC_TEMP_SENSOR_SUPPORTED
 #include "driver/temperature_sensor.h"
 #endif
 
@@ -937,6 +938,7 @@ static int show(int argc, char **argv)
                 printf("SPI errors: none\n");
             }
         }
+#if SOC_TEMP_SENSOR_SUPPORTED
         {
             float tsens = 0.0f;
             temperature_sensor_handle_t tsens_handle = NULL;
@@ -949,6 +951,7 @@ static int show(int argc, char **argv)
             temperature_sensor_uninstall(tsens_handle);
             printf("CPU temperature: %.1f C\n", tsens);
         }
+#endif
 #endif
         // Free heap
         printf("Free heap: %lu bytes\n", (unsigned long)esp_get_free_heap_size());

@@ -56,6 +56,28 @@ If the W5500 INT and/or RST lines are not connected to the SoC, set `CONFIG_ETH_
 
 More details this setup can be found in this [repo](https://github.com/martin-ger/esp32_ethernet_router).
 
+### ESP32-S3 + W5500 (YelloByte YB-ESP32-S3-ETH)
+
+ESP32-S3 board with an on-board W5500 ([YB-ESP32-S3-ETH](https://github.com/yellobyte/YB-ESP32-S3-ETH)). The SPI lines are hardwired:
+
+| W5500 pin | GPIO |
+|-----------|------|
+| MISO | 13 |
+| MOSI | 11 |
+| SCLK | 12 |
+| CS | 14 |
+| INT | 18 (solder bridge, open by default) |
+| RST | 21 (solder bridge, open by default) |
+
+With the INT/RST solder bridges open (factory state) the defaults use `INT=-1` (driver polling every 2 ms) and `RST=-1` (software reset). After closing the bridges, set `CONFIG_ETH_SPI_INT_GPIO=18` and `CONFIG_ETH_SPI_RST_GPIO=21`.
+
+| Parameter | Value |
+|-----------|-------|
+| SoC | ESP32-S3 (dual-core 240 MHz) |
+| Flash | 4 MB partition layout (larger modules work as is) |
+| Ethernet | W5500 via SPI (~26.67 MHz) |
+| Serial | 115200 bps (USB-C → CH343 UART) |
+
 ---
 
 ## Use Cases
@@ -307,7 +329,7 @@ Connect via serial at 115200 bps, or via the remote console.
 | `light_sleep [--time <ms>] [--io <gpio>]...` | Enter light sleep |
 | `factory_reset` | Erase all NVS settings and reboot |
 
-### W5500 Build Only (ESP32-C3 + W5500)
+### W5500 Builds Only (ESP32-C3 / ESP32-S3 + W5500)
 
 | Command | Description |
 |---------|-------------|
@@ -315,7 +337,7 @@ Connect via serial at 115200 bps, or via the remote console.
 | `w5500 status` | Show W5500 register snapshot and SPI error counters |
 | `w5500 reset` | Soft-reset W5500 socket without disturbing lwIP or bridge state |
 
-`show status` also prints the active SPI clock and any SPI error counts when running the W5500 build. The ESP32c3 also reports its CPU temperature.
+`show status` also prints the active SPI clock and any SPI error counts when running the W5500 build. The ESP32-C3 and ESP32-S3 also report their CPU temperature.
 
 ---
 
@@ -374,6 +396,21 @@ idf.py set-target esp32c3 -B build_w5500_c3 \
   menuconfig
 ```
 
+### ESP32-S3 + W5500
+
+```bash
+./build_firmware_w5500_s3.sh
+```
+
+Performs a clean build targeting `esp32s3` and copies binaries to `firmware_w5500_s3/`. To reconfigure before building:
+
+```bash
+idf.py -B build_w5500_s3 \
+  -D SDKCONFIG=sdkconfig.w5500_s3 \
+  -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.w5500_s3" \
+  set-target esp32s3 menuconfig
+```
+
 OTA updates are supported through the web interface (Device Management section) with partition rollback on failed updates.
 
 ---
@@ -403,9 +440,20 @@ esptool.py --chip esp32c3 --port /dev/ttyACM0 --baud 460800 \
   0x20000 firmware_w5500_c3/esp32_eth_wifi_bridge.bin
 ```
 
-Note: the ESP32-C3 bootloader flashes to `0x0000` (not `0x1000` as on classic ESP32).
+### ESP32-S3 + W5500
 
-### First-time setup (both variants)
+```bash
+esptool.py --chip esp32s3 --port <PORT> --baud 460800 \
+  write_flash \
+  0x0000  firmware_w5500_s3/bootloader.bin \
+  0x8000  firmware_w5500_s3/partition-table.bin \
+  0xf000  firmware_w5500_s3/ota_data_initial.bin \
+  0x20000 firmware_w5500_s3/esp32_eth_wifi_bridge.bin
+```
+
+Note: the ESP32-C3 and ESP32-S3 bootloaders flash to `0x0000` (not `0x1000` as on classic ESP32).
+
+### First-time setup (all variants)
 
 After flashing, connect via serial at 115200 bps and configure the WiFi AP:
 
@@ -434,4 +482,7 @@ esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
 
 # ESP32-C3 + W5500
 esptool.py --chip esp32c3 --port /dev/ttyACM0 erase_flash
+
+# ESP32-S3 + W5500
+esptool.py --chip esp32s3 --port <PORT> erase_flash
 ```

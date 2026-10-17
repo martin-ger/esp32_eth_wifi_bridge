@@ -17,6 +17,8 @@ idf.py -B build_eth_sta build        # Build the project
 idf.py -B build_eth_sta flash        # Flash to device
 idf.py -B build_eth_sta monitor      # Watch serial output (115200 bps)
 ./build_firmware.sh                   # Clean build, copies binaries to firmware/
+./build_firmware_w5500_c3.sh          # ESP32-C3 + W5500 → firmware_w5500_c3/ (sdkconfig.w5500_c3)
+./build_firmware_w5500_s3.sh          # ESP32-S3 + W5500 (YB-ESP32-S3-ETH, INT/RST=-1) → firmware_w5500_s3/ (sdkconfig.w5500_s3)
 ```
 
 ## Architecture
@@ -158,7 +160,7 @@ remote_console bind <ap,eth>      # Set interface binding
 syslog enable <server> [<port>]   # Enable syslog forwarding
 syslog disable                    # Disable syslog forwarding
 factory_reset                     # Erase all settings and restart
-# W5500 build only (CONFIG_ETH_UPLINK_W5500):
+# W5500 builds only (CONFIG_ETH_UPLINK_W5500, C3 and S3):
 set_spi_clock <MHz>              # Set W5500 SPI clock speed (saved to NVS, applied after restart)
 w5500 status                     # Show W5500 register diagnostics and SPI error counters
 w5500 reset                      # Soft-reset W5500 socket (no lwIP teardown)
