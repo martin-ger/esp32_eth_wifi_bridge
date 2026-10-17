@@ -172,7 +172,7 @@ static void initialize_console(void)
 #endif
 
     esp_console_config_t console_config = {
-            .max_cmdline_args = 12,
+            .max_cmdline_args = 32,
             .max_cmdline_length = 256,
 #if CONFIG_LOG_COLORS
             .hint_color = atoi(LOG_COLOR_CYAN)
@@ -381,6 +381,10 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
 
     eth_w5500_config_t w5500_config = ETH_W5500_DEFAULT_CONFIG(CONFIG_ETH_SPI_HOST, &devcfg);
     w5500_config.int_gpio_num = CONFIG_ETH_SPI_INT_GPIO;
+#if CONFIG_ETH_SPI_INT_GPIO < 0
+    // No INT line wired: the driver requires poll_period_ms > 0 in this case
+    w5500_config.poll_period_ms = CONFIG_ETH_SPI_POLL_MS;
+#endif
     w5500_spi_driver_config(&w5500_config.custom_spi_driver, &w5500_config);
 
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
@@ -389,7 +393,7 @@ void bridge_init(const char* static_ip, const char* subnet_mask, const char* gat
     esp_eth_mac_t *mac = esp_eth_mac_new_w5500(&w5500_config, &mac_config);
 
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
-    phy_config.reset_gpio_num = CONFIG_ETH_SPI_RST_GPIO;
+    phy_config.reset_gpio_num = CONFIG_ETH_SPI_RST_GPIO;   // W5500 RST line (-1: software reset only)
     esp_eth_phy_t *phy = esp_eth_phy_new_w5500(&phy_config);
 
 #elif defined(CONFIG_ETH_UPLINK_EMAC)

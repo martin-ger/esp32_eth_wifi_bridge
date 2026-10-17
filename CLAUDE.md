@@ -113,6 +113,7 @@ CONFIG_LWIP_L2_TO_L3_COPY=y       # LWIP layer support
 CONFIG_ESP_NETIF_BRIDGE_EN=y       # Bridge netif support
 CONFIG_LWIP_NUM_NETIF_CLIENT_DATA=1
 CONFIG_ETH_USE_ESP32_EMAC=y        # WT32-ETH01 Ethernet (LAN8720)
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096  # sys_evt: ESP_LOG (full vfprintf) + syslog hook overflow the 2304 default
 ```
 
 Note: No `CONFIG_LWIP_IP_FORWARD` or `CONFIG_LWIP_IPV4_NAPT` — this is a Layer 2 bridge, not a router.

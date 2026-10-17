@@ -154,18 +154,28 @@ static bool get_cookie_value(httpd_req_t *req, const char* cookie_name,
         return false;
     }
 
-    // Search for the cookie name
+    /* Match the name only at a cookie boundary — a plain strstr() for
+     * "session=" also matches a cookie called "xsession", letting a caller
+     * supply the value the check is meant to verify. */
     char search_pattern[64];
     snprintf(search_pattern, sizeof(search_pattern), "%s=", cookie_name);
-    char* cookie_start = strstr(cookie_header, search_pattern);
+    size_t pattern_len = strlen(search_pattern);
+
+    char* cookie_start = NULL;
+    for (char* p = cookie_header; (p = strstr(p, search_pattern)) != NULL; p += pattern_len) {
+        bool at_boundary = (p == cookie_header) ||
+                           (p[-1] == ';') ||
+                           (p[-1] == ' ' && p >= cookie_header + 2 && p[-2] == ';');
+        if (at_boundary) {
+            cookie_start = p + pattern_len;
+            break;
+        }
+    }
 
     if (cookie_start == NULL) {
         free(cookie_header);
         return false;
     }
-
-    // Move past the "name=" part
-    cookie_start += strlen(search_pattern);
 
     // Find the end of the cookie value (semicolon or end of string)
     char* cookie_end = strchr(cookie_start, ';');
@@ -203,8 +213,17 @@ static bool is_authenticated(httpd_req_t *req)
         return false;
     }
 
-    // Validate token matches
-    if (strcmp(session_token, current_session_token) != 0) {
+    /* Constant-time compare: strcmp() returns as soon as two bytes differ, so
+     * response timing leaks how much of the token a guess got right. */
+    size_t expected_len = strlen(current_session_token);
+    if (strlen(session_token) != expected_len) {
+        return false;
+    }
+    uint8_t diff = 0;
+    for (size_t i = 0; i < expected_len; i++) {
+        diff |= (uint8_t)(session_token[i] ^ current_session_token[i]);
+    }
+    if (diff != 0) {
         return false;
     }
 
@@ -229,7 +248,7 @@ static esp_err_t create_session(httpd_req_t *req)
 
     // Set cookie in response (using static buffer because httpd stores pointer)
     snprintf(session_cookie_header, sizeof(session_cookie_header),
-             "session=%s; Path=/; SameSite=Strict", current_session_token);
+             "session=%s; Path=/; SameSite=Strict; HttpOnly", current_session_token);
     httpd_resp_set_hdr(req, "Set-Cookie", session_cookie_header);
 
     ESP_LOGI(TAG, "Session created, expires in 30 minutes");

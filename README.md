@@ -45,6 +45,8 @@ ESP32-C3 module with a W5500 SPI Ethernet chip. Default wiring (all pins configu
 | INT | 3 |
 | RST | 2 |
 
+If the W5500 INT and/or RST lines are not connected to the SoC, set `CONFIG_ETH_SPI_INT_GPIO=-1` (the driver then polls the chip every `CONFIG_ETH_SPI_POLL_MS`, default 2 ms) and/or `CONFIG_ETH_SPI_RST_GPIO=-1` (software reset only).
+
 | Parameter | Value |
 |-----------|-------|
 | SoC | ESP32-C3 (single-core 160 MHz) |
