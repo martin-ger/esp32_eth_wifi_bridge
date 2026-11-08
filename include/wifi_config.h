@@ -62,6 +62,13 @@ esp_err_t set_config_param_str(const char* name, const char* value);
 esp_err_t set_config_param_int(const char* name, int32_t value);
 esp_err_t set_config_param_blob(const char* name, const void* data, size_t len);
 
+// Erase all settings (NVS namespace PARAM_NAMESPACE). Does not touch the
+// network and does not restart. Callers must then call esp_wifi_restore()
+// (clears the WiFi driver's stored config) right before esp_restart():
+// esp_wifi_restore() stops WiFi, which breaks the bridge's TX path, so any
+// reply to the requester has to be sent before it.
+esp_err_t factory_reset_settings(void);
+
 #ifdef __cplusplus
 }
 #endif

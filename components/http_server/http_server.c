@@ -99,8 +99,16 @@ static char current_session_token[MAX_SESSION_TOKEN_LEN + 1] = {0};
 static bool session_active = false;
 static int64_t session_expiry_time = 0;
 
+/* Set by the factory reset handler: clear the WiFi driver's stored config
+ * just before restarting.  Deferred to here because esp_wifi_restore() stops
+ * WiFi, which breaks the bridge TX path and would kill the HTTP reply. */
+static volatile bool restart_wifi_restore = false;
+
 static void restart_timer_callback(void* arg)
 {
+    if (restart_wifi_restore) {
+        esp_wifi_restore();
+    }
     ESP_LOGI(TAG, "Restarting now...");
     esp_restart();
 }
@@ -586,6 +594,42 @@ static httpd_uri_t ota_uploadp = {
     .uri       = "/api/ota-upload",
     .method    = HTTP_POST,
     .handler   = ota_upload_handler,
+};
+
+/* --- Factory reset handler ---
+ * POST-only so a prefetch, reload or history entry can never trigger it; the
+ * SameSite=Strict session cookie keeps cross-site POSTs unauthenticated. */
+static esp_err_t factory_reset_handler(httpd_req_t *req)
+{
+    char _ip[16];
+    get_client_ip(req, _ip, sizeof(_ip));
+
+    if (is_web_password_set() && !is_authenticated(req)) {
+        ESP_LOGW(TAG, "Unauthenticated access to /api/factory-reset from %s", _ip);
+        httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Not authenticated");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    esp_err_t err = factory_reset_settings();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Factory reset failed: %s", esp_err_to_name(err));
+        httpd_resp_send(req, "{\"ok\":false,\"msg\":\"Failed to erase settings\"}", HTTPD_RESP_USE_STRLEN);
+        return ESP_OK;
+    }
+
+    ESP_LOGW(TAG, "Factory reset requested via web UI from %s, restarting...", _ip);
+    clear_session();
+    httpd_resp_send(req, "{\"ok\":true,\"msg\":\"Settings erased. Rebooting...\"}", HTTPD_RESP_USE_STRLEN);
+    restart_wifi_restore = true;
+    esp_timer_start_once(restart_timer, 1000000);
+    return ESP_OK;
+}
+
+static httpd_uri_t factory_resetp = {
+    .uri       = "/api/factory-reset",
+    .method    = HTTP_POST,
+    .handler   = factory_reset_handler,
 };
 
 esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
@@ -1250,7 +1294,7 @@ httpd_handle_t start_webserver(uint16_t port)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = port;
     config.stack_size = 16384;
-    config.max_uri_handlers = 5;
+    config.max_uri_handlers = 6;
     config.max_uri_len = 1024;
     config.open_fn = http_open_fn;
     /* Fail a stalled send/recv fast (default 5s) so an abandoned connection
@@ -1279,6 +1323,7 @@ httpd_handle_t start_webserver(uint16_t port)
         httpd_register_uri_handler(server, &configp);
         httpd_register_uri_handler(server, &favicon_uri);
         httpd_register_uri_handler(server, &ota_uploadp);
+        httpd_register_uri_handler(server, &factory_resetp);
 
         return server;
     }

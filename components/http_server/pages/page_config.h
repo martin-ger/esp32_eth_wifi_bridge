@@ -186,7 +186,7 @@ setTimeout(\"location.href = '/'\", 10000);\
 <h2 style='color:#4caf50;margin-bottom:1rem;' id='rebootTitle'>Success</h2>\
 <p style='font-size:1.1rem;margin-bottom:0.5rem;' id='rebootMsg'>The device is rebooting...</p>\
 <p style='font-size:1.5rem;font-weight:bold;color:#ffb300;' id='countdown'></p>\
-<p style='color:#888;font-size:0.9rem;'>Redirecting to home page...</p>\
+<p style='color:#888;font-size:0.9rem;' id='rebootHint'>Redirecting to home page...</p>\
 </div>\
 <script>\
 document.getElementById('otaFile').addEventListener('change',function(){document.getElementById('otaFileName').textContent=this.files[0]?this.files[0].name:'Choose .bin file...';});\
@@ -216,8 +216,28 @@ document.getElementById('otaStatus').innerHTML='<span style=\"color:#ff5252;\">'
 xhr.onerror=function(){document.getElementById('otaStatus').innerHTML='<span style=\"color:#ff5252;\">Connection error</span>';};\
 xhr.send(f);\
 }\
+function factoryReset(){\
+if(!confirm('Factory reset will erase ALL settings and reboot:\\n\\n- WiFi AP returns to the default SSID/password\\n- Management IP reverts to DHCP (the device will likely get a new address)\\n- The web password is removed\\n\\nContinue?'))return;\
+var st=document.getElementById('frStatus');st.textContent='Resetting...';\
+var xhr=new XMLHttpRequest();\
+xhr.open('POST','/api/factory-reset',true);\
+xhr.onload=function(){\
+try{var d=JSON.parse(xhr.responseText);\
+if(d.ok){\
+document.getElementById('mainContent').style.display='none';\
+document.getElementById('dangerZone').style.display='none';\
+document.getElementById('rebootScreen').style.display='block';\
+document.getElementById('rebootTitle').textContent='Factory Reset Done';\
+document.getElementById('rebootMsg').textContent='All settings were erased and the device is rebooting.';\
+document.getElementById('rebootHint').textContent='Reconnect to the default WiFi AP, or find the device\\'s new DHCP address on your network.';\
+}else{st.innerHTML='<span style=\"color:#ff5252;\">'+d.msg+'</span>';}\
+}catch(e){st.innerHTML='<span style=\"color:#ff5252;\">Factory reset failed (HTTP '+xhr.status+')</span>';}\
+};\
+xhr.onerror=function(){st.innerHTML='<span style=\"color:#ff5252;\">Connection error</span>';};\
+xhr.send();\
+}\
 </script>\
-<div style='margin-top: 2rem; padding: 1rem; background: #fff3cd; border: 2px solid #ff9800; border-radius: 8px;'>\
+<div id='dangerZone' style='margin-top: 2rem; padding: 1rem; background: #fff3cd; border: 2px solid #ff9800; border-radius: 8px;'>\
 <h2 style='color: #ff6b00; margin-bottom: 0.5rem;'>Danger Zone</h2>\
 <p style='margin-bottom: 1rem; color: #666; font-size: 0.9rem;'>This will disable the web interface completely. You can only re-enable it via the console using the 'web_ui enable' command.</p>\
 <form action='' method='GET'>\
@@ -226,6 +246,12 @@ xhr.send(f);\
 <td><input type='submit' name='disable_interface' value='Disable' class='red-button' onclick='return confirm(\"Are you sure? The web interface will be disabled and can only be re-enabled via the console.\");'/></td></tr>\
 </table>\
 </form>\
+<p style='margin: 1rem 0; color: #666; font-size: 0.9rem;'>Factory reset erases all settings (AP, management IP, password, services) and reboots with defaults.</p>\
+<table>\
+<tr><td style='color: #d32f2f; font-weight: bold;'>Factory Reset</td>\
+<td><button type='button' onclick='factoryReset()' class='red-button'>Factory Reset</button>\
+<div id='frStatus' style='margin-top:0.5rem;font-size:0.9rem;'></div></td></tr>\
+</table>\
 </div>\
 <div style='margin-top: 2rem; text-align: center;'>\
 <a href='/' style='padding: 0.75rem 2rem; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #1a1510; border: none; border-radius: 8px; text-decoration: none; font-size: 0.95rem; font-weight: 600;'>Home</a>\

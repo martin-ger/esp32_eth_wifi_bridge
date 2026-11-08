@@ -16,6 +16,7 @@
 #include "esp_wifi.h"
 #include "nvs.h"
 #include "router_config.h"
+#include "wifi_config.h"
 #include "esp_sleep.h"
 #include "esp_flash.h"
 #include "esp_chip_info.h"
@@ -151,15 +152,7 @@ static void register_restart(void)
 
 static int factory_reset(int argc, char **argv)
 {
-    nvs_handle_t nvs;
-    esp_err_t err = nvs_open(PARAM_NAMESPACE, NVS_READWRITE, &nvs);
-    if (err == ESP_OK) {
-        err = nvs_erase_all(nvs);
-        if (err == ESP_OK) {
-            err = nvs_commit(nvs);
-        }
-        nvs_close(nvs);
-    }
+    esp_err_t err = factory_reset_settings();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to erase NVS namespace: %s", esp_err_to_name(err));
         return 1;

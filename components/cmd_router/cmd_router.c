@@ -249,6 +249,17 @@ esp_err_t set_config_param_str(const char* name, const char* value)
     return err;
 }
 
+esp_err_t factory_reset_settings(void)
+{
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open(PARAM_NAMESPACE, NVS_READWRITE, &nvs);
+    if (err != ESP_OK) return err;
+    err = nvs_erase_all(nvs);
+    if (err == ESP_OK) err = nvs_commit(nvs);
+    nvs_close(nvs);
+    return err;
+}
+
 esp_err_t set_config_param_int(const char* name, int32_t value)
 {
     nvs_handle_t nvs;
