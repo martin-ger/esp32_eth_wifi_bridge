@@ -134,7 +134,10 @@ Grouped into sections. Changes trigger a reboot to apply.
 - *Hostname* — DHCP/mDNS hostname
 - *Remote Console* — enable/disable, port, interface binding (AP/ETH), idle timeout
 - *PCAP Packet Capture* — on/off toggle, snaplen
-- *Device Management* — OTA firmware upload, factory reset
+- *Device Management* — OTA firmware upload, reboot
+- *Danger Zone* — disable the web interface; **Factory Reset** erases all settings and reboots with defaults (after a confirmation prompt)
+
+After a factory reset the AP returns to the default SSID (`esp32-bridge`, open network), the management IP reverts to DHCP, and the web password is removed — so the device usually comes back at a different address. Reconnect to the default AP or look up its new DHCP lease (or try `http://esp32-bridge.local`).
 
 <img src="https://github.com/martin-ger/esp32_eth_wifi_bridge/blob/master/UI_config.png">
 
@@ -467,7 +470,7 @@ The bridge will reboot. Connect a WiFi client to the AP — it will receive an I
 set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
 ```
 
-To erase all settings and return to defaults:
+To erase all settings and return to defaults, use the **Factory Reset** button in the web interface (Configuration page, Danger Zone) or the console command:
 
 ```
 factory_reset
