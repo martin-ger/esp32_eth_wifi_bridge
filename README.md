@@ -352,7 +352,7 @@ Requires ESP-IDF v5.x. Source the ESP-IDF environment first:
 . $IDF_PATH/export.sh
 ```
 ### Customising Factory Defaults
-The file `include\factory_defaults` defines the factory default values for most configuration settings. This allows custom builds where the factory default configuration is pre-configured.
+The file `include\factory_defaults.h` defines the factory default values for most configuration settings. This allows custom builds where the factory default configuration is pre-configured.
 
 ### WT32-ETH01 (default)
 
