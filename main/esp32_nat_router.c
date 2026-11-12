@@ -659,12 +659,8 @@ void app_main(void)
     // Load DHCP server config from NVS
     {
         int dhcps_en = DEFAULT_DHCPS_ENABLED;
-        
-        ESP_LOGI(TAG, "------- UBWH RESULT dhcps_en = %s", get_config_param_int("dhcps_enabled", &dhcps_en)==ESP_OK?"OK":"NOT OK");
         if(get_config_param_int("dhcps_enabled", &dhcps_en)!=ESP_OK)
            set_config_param_int("dhcps_enabled", DEFAULT_DHCPS_ENABLED);
-        ESP_LOGI(TAG, "------- UBWH RESULT dhcps_en = %s", get_config_param_int("dhcps_enabled", &dhcps_en)==ESP_OK?"OK":"NOT OK");
-        
         if (get_config_param_int("dhcps_enabled", &dhcps_en) == ESP_OK) dhcps_enabled = (dhcps_en != 0);
         get_config_param_str("dhcps_start_ip", &dhcps_start_ip);
         if (!dhcps_start_ip) set_config_param_str("dhcps_start_ip", DEFAULT_DHCPS_START_IP);
