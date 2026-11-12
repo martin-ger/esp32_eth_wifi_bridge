@@ -4,7 +4,7 @@ Firmware that creates a plain transparent Layer 2 bridge between an Ethernet por
 
 **Derived from** [esp32_nat_router](https://github.com/martin-ger/esp32_nat_router). The original project is a WiFi NAT router with lot of additional features. This variant operates as a **pure L2 bridge**: the Ethernet port and WiFi AP share a single broadcast domain, and all frames are forwarded transparently at the MAC layer.
 
-<img src="https://github.com/martin-ger/esp32_eth_wifi_bridge/blob/master/topology.png">
+<img src="topology.svg" alt="ESP32 Ethernet-WiFi bridge topology" width="100%">
 
 By default, all clients receive their IP addresses from the upstream network's DHCP server. Optionally, the bridge can run its own DHCP server and hand out leases to devices on **both** sides — Ethernet and WiFi — from a single pool. The bridge itself can obtain a management IP (static or DHCP) for web access and remote administration.
 

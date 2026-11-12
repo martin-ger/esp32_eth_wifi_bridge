@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="716" viewBox="0 0 1280 716" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .t   { fill:#0f172a; }
+      .s   { fill:#475569; }
+      .m   { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace; }
+      .h   { font-size:15px; font-weight:600; }
+      .sub { font-size:12px; }
+      .zone{ font-size:12px; font-weight:700; letter-spacing:1.6px; }
+      .ico { fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+      .card{ fill:#ffffff; stroke-width:1.5; }
+    </style>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <marker id="aB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="aO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d9480f"/>
+    </marker>
+    <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#cbd5e1" opacity="0.55"/>
+    </pattern>
+
+    <!-- icons, 32x32 box -->
+    <g id="i-router" class="ico"><rect x="2" y="15" width="28" height="12" rx="3"/><path d="M9 15 L6 4 M23 15 L26 4"/><circle cx="8" cy="21" r="1.2"/><circle cx="13" cy="21" r="1.2"/><path d="M19 21 H25"/></g>
+    <g id="i-nas" class="ico"><rect x="7" y="2" width="18" height="28" rx="3"/><path d="M7 11 H25 M7 20 H25"/><circle cx="20" cy="6.5" r="1"/><circle cx="20" cy="15.5" r="1"/><circle cx="20" cy="24.5" r="1"/></g>
+    <g id="i-pc" class="ico"><rect x="2" y="4" width="28" height="18" rx="2"/><path d="M12 28 H20 M16 22 V28"/></g>
+    <g id="i-switch" class="ico"><rect x="1" y="9" width="38" height="16" rx="3"/><path d="M6 17 h3 M12 17 h3 M18 17 h3 M24 17 h3 M30 17 h3"/></g>
+    <g id="i-phone" class="ico"><rect x="9" y="2" width="14" height="28" rx="3"/><path d="M14 26 H18"/></g>
+    <g id="i-laptop" class="ico"><rect x="5" y="6" width="22" height="15" rx="2"/><path d="M1 25 H31 L29 28 H3 Z"/></g>
+    <g id="i-iot" class="ico"><rect x="8" y="8" width="16" height="16" rx="3"/><path d="M12 8 V3 M20 8 V3 M12 24 V29 M20 24 V29 M8 12 H3 M8 20 H3 M24 12 H29 M24 20 H29"/><circle cx="16" cy="16" r="2.5"/></g>
+    <g id="i-browser" class="ico"><rect x="2" y="4" width="28" height="24" rx="3"/><path d="M2 11 H30"/><circle cx="6.5" cy="7.5" r="0.8"/><circle cx="10" cy="7.5" r="0.8"/></g>
+    <g id="i-shark" class="ico"><path d="M3 24 C10 22 14 12 24 4 C22 12 23 18 29 24"/><path d="M2 28 C7 26 11 30 16 28 C21 26 25 30 30 28"/></g>
+    <g id="i-term" class="ico"><rect x="2" y="4" width="28" height="24" rx="3"/><path d="M8 12 L13 16 L8 20 M16 21 H23"/></g>
+    <g id="i-log" class="ico"><path d="M7 2 H20 L26 8 V30 H7 Z"/><path d="M20 2 V8 H26 M11 14 H22 M11 19 H22 M11 24 H18"/></g>
+  </defs>
+
+  <!-- canvas -->
+  <rect x="0.5" y="0.5" width="1279" height="715" rx="18" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="1" y="1" width="1278" height="714" rx="18" fill="url(#grid)"/>
+
+  <!-- title -->
+  <text x="40" y="46" class="t" font-size="24" font-weight="700">ESP32 Ethernet <tspan fill="#64748b">⇄</tspan> WiFi Bridge</text>
+  <text x="40" y="72" class="s" font-size="14">Transparent Layer 2 bridge — Ethernet and WiFi share one broadcast domain. No NAT, no routing, no extra subnet.</text>
+
+  <!-- broadcast domain -->
+  <rect x="24" y="100" width="1232" height="430" rx="16" fill="#f1f6fd" fill-opacity="0.85" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="7 5"/>
+  <rect x="440" y="88" width="400" height="26" rx="13" fill="#0f172a"/>
+  <text x="640" y="105.5" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600" letter-spacing="0.4">ONE BROADCAST DOMAIN · one subnet, e.g. 192.168.1.0/24</text>
+
+  <text x="44" y="134" class="zone" fill="#3b5bdb">WIRED SIDE · ETHERNET</text>
+  <text x="1236" y="134" class="zone" fill="#0c8599" text-anchor="end">WIRELESS SIDE · WIFI AP</text>
+
+  <!-- ============ WIRED SIDE ============ -->
+  <g stroke="#3b5bdb" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <path d="M214 182 H229 V324 H244"/>
+    <path d="M214 324 H244"/>
+    <path d="M214 466 H229 V324"/>
+    <path d="M354 324 H402"/>
+  </g>
+  <text x="378" y="314" text-anchor="middle" font-size="11" fill="#3b5bdb" font-weight="600">RJ45</text>
+
+  <g filter="url(#sh)">
+    <rect class="card" x="44" y="150" width="170" height="64" rx="10" stroke="#bac8ff"/>
+    <rect class="card" x="44" y="292" width="170" height="64" rx="10" stroke="#bac8ff"/>
+    <rect class="card" x="44" y="434" width="170" height="64" rx="10" stroke="#bac8ff"/>
+    <rect x="244" y="296" width="110" height="56" rx="10" fill="#3b5bdb"/>
+  </g>
+  <use href="#i-router" x="54" y="166" stroke="#3b5bdb"/>
+  <text x="96" y="176" class="t h">Router</text>
+  <text x="96" y="193" class="s sub" font-size="11.5">gateway · DHCP</text>
+  <text x="96" y="207" class="s sub m" font-size="11">192.168.1.1</text>
+
+  <use href="#i-nas" x="54" y="308" stroke="#3b5bdb"/>
+  <text x="96" y="318" class="t h">NAS / server</text>
+  <text x="96" y="335" class="s sub">wired host</text>
+  <text x="96" y="349" class="s sub m" font-size="11">192.168.1.20</text>
+
+  <use href="#i-pc" x="54" y="450" stroke="#3b5bdb"/>
+  <text x="96" y="460" class="t h">Desktop PC</text>
+  <text x="96" y="477" class="s sub">wired host</text>
+  <text x="96" y="491" class="s sub m" font-size="11">192.168.1.30</text>
+
+  <use href="#i-switch" x="279" y="297" stroke="#ffffff"/>
+  <text x="299" y="342" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Switch</text>
+
+  <!-- ============ BRIDGE BOARD ============ -->
+  <g filter="url(#sh)">
+    <rect x="420" y="140" width="440" height="372" rx="14" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+  </g>
+  <path d="M420 154 a14 14 0 0 1 14 -14 H846 a14 14 0 0 1 14 14 V184 H420 Z" fill="#1e293b"/>
+  <text x="438" y="167" fill="#ffffff" font-size="15" font-weight="700">ESP32 bridge firmware</text>
+  <text x="438" y="179.5" fill="#94a3b8" font-size="10.5">WT32-ETH01 · ESP32-C3 + W5500 · ESP32-S3 + W5500</text>
+  <circle cx="838" cy="162" r="5" fill="#40c057"/>
+  <text x="828" y="166" text-anchor="end" fill="#cbd5e1" font-size="10.5">LED: link / traffic</text>
+
+  <!-- RJ45 jack on board edge -->
+  <rect x="402" y="308" width="22" height="32" rx="3" fill="#334155"/>
+  <path d="M407 316 h12 v12 h-3 v4 h-6 v-4 h-3 z" fill="#94a3b8"/>
+
+  <!-- frame strip -->
+  <text x="640" y="208" text-anchor="middle" class="s" font-size="12">Every Ethernet frame is forwarded unchanged — same MACs, same IPs</text>
+  <g font-size="11" font-weight="600" text-anchor="middle">
+    <rect x="440" y="218" width="84" height="28" rx="5" fill="#dbe4ff"/><text x="482" y="236" fill="#364fc7">dst MAC</text>
+    <rect x="527" y="218" width="84" height="28" rx="5" fill="#dbe4ff"/><text x="569" y="236" fill="#364fc7">src MAC</text>
+    <rect x="614" y="218" width="54" height="28" rx="5" fill="#e9ecef"/><text x="641" y="236" fill="#495057">type</text>
+    <rect x="671" y="218" width="126" height="28" rx="5" fill="#c5f6fa"/><text x="734" y="236" fill="#0b7285">IP · ARP · DHCP …</text>
+    <rect x="800" y="218" width="40" height="28" rx="5" fill="#e9ecef"/><text x="820" y="236" fill="#495057">FCS</text>
+  </g>
+  <text x="640" y="268" text-anchor="middle" font-size="11" fill="#64748b">broadcasts, multicast (mDNS, SSDP …) and DHCP cross the bridge too</text>
+
+  <!-- data path -->
+  <g filter="url(#sh)">
+    <rect x="440" y="296" width="104" height="56" rx="9" fill="#edf2ff" stroke="#3b5bdb" stroke-width="1.5"/>
+    <rect x="586" y="292" width="108" height="64" rx="9" fill="#1e293b"/>
+    <rect x="736" y="296" width="104" height="56" rx="9" fill="#e3fafc" stroke="#0c8599" stroke-width="1.5"/>
+  </g>
+  <text x="492" y="319" text-anchor="middle" class="t" font-size="13.5" font-weight="700">Ethernet</text>
+  <text x="492" y="337" text-anchor="middle" class="s" font-size="10.5">LAN8720 · W5500</text>
+  <text x="640" y="319" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">L2 bridge</text>
+  <text x="640" y="337" text-anchor="middle" fill="#94a3b8" font-size="10.5">MAC learning</text>
+  <text x="640" y="349" text-anchor="middle" fill="#94a3b8" font-size="10.5">&amp; forwarding</text>
+  <text x="788" y="319" text-anchor="middle" class="t" font-size="13.5" font-weight="700">WiFi AP</text>
+  <text x="788" y="337" text-anchor="middle" class="s" font-size="10.5">WPA2 / WPA3</text>
+  <g stroke="#334155" stroke-width="2" fill="none">
+    <path d="M549 324 H581" marker-start="url(#aB)" marker-end="url(#aB)"/>
+    <path d="M699 324 H731" marker-start="url(#aB)" marker-end="url(#aB)"/>
+  </g>
+
+  <!-- mgmt link -->
+  <path d="M640 356 V372" stroke="#d9480f" stroke-width="2" stroke-dasharray="4 3"/>
+
+  <!-- management panel -->
+  <rect x="440" y="372" width="400" height="124" rx="10" fill="#fff4e6" stroke="#ffa94d" stroke-width="1.5"/>
+  <text x="452" y="392" fill="#d9480f" font-size="12.5" font-weight="700">Management IP</text>
+  <text x="558" y="392" fill="#9a3412" font-size="11">static or DHCP · esp32-bridge.local</text>
+  <g font-size="11.5" font-weight="600" fill="#9a3412" text-anchor="middle">
+    <rect x="448" y="402" width="124" height="38" rx="7" fill="#ffffff" stroke="#ffc078"/>
+    <text x="510" y="418">Web UI</text><text x="510" y="432" class="m" font-weight="400" font-size="10.5">:80 · OTA update</text>
+    <rect x="578" y="402" width="124" height="38" rx="7" fill="#ffffff" stroke="#ffc078"/>
+    <text x="640" y="418">Remote console</text><text x="640" y="432" class="m" font-weight="400" font-size="10.5">TCP :2323</text>
+    <rect x="708" y="402" width="124" height="38" rx="7" fill="#ffffff" stroke="#ffc078"/>
+    <text x="770" y="418">PCAP capture</text><text x="770" y="432" class="m" font-weight="400" font-size="10.5">TCP :19000</text>
+    <rect x="448" y="448" width="124" height="38" rx="7" fill="#ffffff" stroke="#ffc078"/>
+    <text x="510" y="464">Syslog forward</text><text x="510" y="478" class="m" font-weight="400" font-size="10.5">UDP → :514</text>
+    <rect x="578" y="448" width="124" height="38" rx="7" fill="#ffffff" stroke="#ffc078" stroke-dasharray="4 3"/>
+    <text x="640" y="464">DHCP server</text><text x="640" y="478" font-weight="400" font-size="10.5">optional, one pool</text>
+    <rect x="708" y="448" width="124" height="38" rx="7" fill="#ffffff" stroke="#ffc078"/>
+    <text x="770" y="464">Serial CLI</text><text x="770" y="478" class="m" font-weight="400" font-size="10.5">115200 bps</text>
+  </g>
+
+  <!-- ============ WIRELESS SIDE ============ -->
+  <g stroke="#0c8599" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <path d="M866 312 a16 16 0 0 1 0 24"/>
+    <path d="M874 304 a28 28 0 0 1 0 40"/>
+    <path d="M882 296 a40 40 0 0 1 0 56"/>
+  </g>
+  <g stroke="#0c8599" stroke-width="2" fill="none" stroke-dasharray="2 6" stroke-linecap="round">
+    <path d="M898 314 C 970 300, 990 182, 1064 182"/>
+    <path d="M898 324 H1064"/>
+    <path d="M898 334 C 970 348, 990 466, 1064 466"/>
+  </g>
+  <text x="980" y="314" text-anchor="middle" font-size="11" fill="#0c8599" font-weight="600">SSID esp32-bridge</text>
+
+  <g filter="url(#sh)">
+    <rect class="card" x="1066" y="150" width="170" height="64" rx="10" stroke="#99e9f2"/>
+    <rect class="card" x="1066" y="292" width="170" height="64" rx="10" stroke="#99e9f2"/>
+    <rect class="card" x="1066" y="434" width="170" height="64" rx="10" stroke="#99e9f2"/>
+  </g>
+  <use href="#i-phone" x="1076" y="166" stroke="#0c8599"/>
+  <text x="1118" y="176" class="t h">Phone</text>
+  <text x="1118" y="193" class="s sub">WiFi client</text>
+  <text x="1118" y="207" class="s sub m" font-size="11">192.168.1.101</text>
+
+  <use href="#i-laptop" x="1076" y="308" stroke="#0c8599"/>
+  <text x="1118" y="318" class="t h">Laptop</text>
+  <text x="1118" y="335" class="s sub">WiFi client</text>
+  <text x="1118" y="349" class="s sub m" font-size="11">192.168.1.102</text>
+
+  <use href="#i-iot" x="1076" y="450" stroke="#0c8599"/>
+  <text x="1118" y="460" class="t h">IoT device</text>
+  <text x="1118" y="477" class="s sub">WiFi client</text>
+  <text x="1118" y="491" class="s sub m" font-size="11">192.168.1.103</text>
+
+  <text x="980" y="517" text-anchor="middle" font-size="11" fill="#64748b">addresses from the upstream DHCP server</text>
+
+  <!-- ============ ADMIN / TOOLS ============ -->
+  <g stroke="#d9480f" stroke-width="1.8" fill="none" stroke-dasharray="5 4">
+    <path d="M640 496 V548"/>
+    <path d="M184 548 H1093"/>
+    <path d="M184 548 V566" marker-end="url(#aO)"/>
+    <path d="M487 548 V566" marker-end="url(#aO)"/>
+    <path d="M793 548 V566" marker-end="url(#aO)"/>
+    <path d="M1093 548 V566" marker-end="url(#aO)"/>
+  </g>
+  <rect x="520" y="539" width="240" height="18" rx="9" fill="#ffffff"/>
+  <text x="640" y="552" text-anchor="middle" font-size="11" fill="#d9480f" font-weight="600">reachable from any host on either side</text>
+
+  <g filter="url(#sh)">
+    <rect class="card" x="40"  y="568" width="288" height="84" rx="10" stroke="#ffd8a8"/>
+    <rect class="card" x="343" y="568" width="288" height="84" rx="10" stroke="#ffd8a8"/>
+    <rect class="card" x="649" y="568" width="288" height="84" rx="10" stroke="#ffd8a8"/>
+    <rect class="card" x="952" y="568" width="288" height="84" rx="10" stroke="#ffd8a8"/>
+  </g>
+  <g stroke="#d9480f">
+    <use href="#i-browser" x="52"  y="580"/>
+    <use href="#i-shark"   x="355" y="580"/>
+    <use href="#i-term"    x="661" y="580"/>
+    <use href="#i-log"     x="964" y="580"/>
+  </g>
+  <text x="94"  y="592" class="t h">Browser</text>
+  <text x="94"  y="609" class="s sub">status, configuration, OTA</text>
+  <text x="397" y="592" class="t h">Wireshark</text>
+  <text x="397" y="609" class="s sub">live capture of all bridged traffic</text>
+  <text x="703" y="592" class="t h">Remote console</text>
+  <text x="703" y="609" class="s sub">password-protected CLI</text>
+  <text x="1006" y="592" class="t h">Syslog server</text>
+  <text x="1006" y="609" class="s sub">collects ESP log output</text>
+
+  <g class="m" font-size="11" fill="#334155">
+    <rect x="52"  y="622" width="264" height="22" rx="5" fill="#f1f5f9"/><text x="60"  y="637">http://esp32-bridge.local</text>
+    <rect x="355" y="622" width="264" height="22" rx="5" fill="#f1f5f9"/><text x="363" y="637">nc &lt;ip&gt; 19000 | wireshark -k -i -</text>
+    <rect x="661" y="622" width="264" height="22" rx="5" fill="#f1f5f9"/><text x="669" y="637">nc &lt;ip&gt; 2323</text>
+    <rect x="964" y="622" width="264" height="22" rx="5" fill="#f1f5f9"/><text x="972" y="637">syslog enable &lt;server&gt; 514</text>
+  </g>
+
+  <!-- legend -->
+  <g font-size="11.5" fill="#475569">
+    <path d="M40 686 H68" stroke="#3b5bdb" stroke-width="2.5"/><text x="76" y="690">Ethernet</text>
+    <path d="M150 686 H178" stroke="#0c8599" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/><text x="186" y="690">WiFi</text>
+    <path d="M240 686 H268" stroke="#d9480f" stroke-width="1.8" stroke-dasharray="5 4"/><text x="276" y="690">management access (via mgmt IP)</text>
+    <text x="1240" y="690" text-anchor="end">Use cases: add WiFi to a wired LAN · transparent monitoring tap · stand-alone network with built-in DHCP</text>
+  </g>
+</svg>
