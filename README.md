@@ -101,6 +101,7 @@ With the INT/RST solder bridges open (factory state) the defaults use `INT=-1` (
 - Configurable WiFi TX power, status LED, and timezone
 - AP interface can be enabled/disabled at runtime
 - All settings persisted in NVS flash; survive firmware updates
+- Factory defaults can be defined at compile time
 
 ---
 
@@ -350,6 +351,8 @@ Requires ESP-IDF v5.x. Source the ESP-IDF environment first:
 ```bash
 . $IDF_PATH/export.sh
 ```
+### Customising Factory Defaults
+The file `include\factory_defaults.h` defines the factory default values for most configuration settings. This allows custom builds where the factory default configuration is pre-configured.
 
 ### WT32-ETH01 (default)
 

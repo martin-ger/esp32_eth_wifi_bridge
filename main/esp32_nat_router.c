@@ -60,6 +60,8 @@
 #include "remote_console.h"
 #include "syslog_client.h"
 
+#include "factory_defaults.h"
+
 // Byte counting variables
 uint64_t sta_bytes_sent = 0;
 uint64_t sta_bytes_received = 0;
@@ -639,33 +641,66 @@ void app_main(void)
 
     // Load config from NVS
     get_config_param_str("static_ip", &static_ip);
-    if (static_ip == NULL) static_ip = param_set_default("");
+    if (static_ip == NULL) {
+        set_config_param_str("static_ip", DEFAULT_STATIC_IP);
+        static_ip = param_set_default(DEFAULT_STATIC_IP);
+    }
     get_config_param_str("subnet_mask", &subnet_mask);
-    if (subnet_mask == NULL) subnet_mask = param_set_default("");
+    if (subnet_mask == NULL) {
+        set_config_param_str("subnet_mask", DEFAULT_SUBNETMASK);
+        subnet_mask = param_set_default(DEFAULT_SUBNETMASK);
+    }
     get_config_param_str("gateway_addr", &gateway_addr);
-    if (gateway_addr == NULL) gateway_addr = param_set_default("");
-
+    if (gateway_addr == NULL) {
+        set_config_param_str("gateway_addr", DEFAULT_GATEWAY);
+        gateway_addr = param_set_default(DEFAULT_GATEWAY);
+    }
     get_config_param_blob("ap_mac", &ap_mac, 6);
     get_config_param_str("ap_ssid", &ap_ssid);
-    if (ap_ssid == NULL) ap_ssid = param_set_default(DEFAULT_HOSTNAME);
+    if (ap_ssid == NULL)  {
+        set_config_param_str("ap_ssid", DEFAULT_SSID);
+        ap_ssid = param_set_default(DEFAULT_SSID);
+    }
+
     get_config_param_str("ap_passwd", &ap_passwd);
-    if (ap_passwd == NULL) ap_passwd = param_set_default("");
+    if (ap_passwd == NULL)  {
+        set_config_param_str("ap_passwd", DEFAULT_AP_PASSWORD);
+        ap_passwd = param_set_default(DEFAULT_AP_PASSWORD);
+    }
     get_config_param_str("hostname", &hostname);
-    if (hostname == NULL || hostname[0] == '\0') hostname = param_set_default(DEFAULT_HOSTNAME);
+    if (hostname == NULL || hostname[0] == '\0') {
+        set_config_param_str("hostname", DEFAULT_HOSTNAME);
+        hostname = param_set_default(DEFAULT_HOSTNAME);
+    }
 
     // Load DHCP server config from NVS
     {
-        int dhcps_en = 0;
+        int dhcps_en = DEFAULT_DHCPS_ENABLED;
+        if (get_config_param_int("dhcps_enabled", &dhcps_en)!=ESP_OK)
+           set_config_param_int("dhcps_enabled", DEFAULT_DHCPS_ENABLED);
         if (get_config_param_int("dhcps_enabled", &dhcps_en) == ESP_OK) dhcps_enabled = (dhcps_en != 0);
         get_config_param_str("dhcps_start_ip", &dhcps_start_ip);
-        if (!dhcps_start_ip) dhcps_start_ip = param_set_default("");
+        if (!dhcps_start_ip) {
+            set_config_param_str("dhcps_start_ip", DEFAULT_DHCPS_START_IP);
+            dhcps_start_ip = param_set_default(DEFAULT_DHCPS_START_IP);
+        }
         get_config_param_str("dhcps_end_ip", &dhcps_end_ip);
-        if (!dhcps_end_ip)   dhcps_end_ip   = param_set_default("");
-        int dhcps_lease = 120;
+        if (!dhcps_end_ip) {
+            set_config_param_str("dhcps_end_ip", DEFAULT_DHCPS_END_IP);
+            dhcps_end_ip = param_set_default(DEFAULT_DHCPS_END_IP);
+        }
+        int dhcps_lease = DEFAULT_DHCPS_LEASE_MIN;
+        if (get_config_param_int("dhcps_lease", &dhcps_lease)!=ESP_OK)
+           set_config_param_int("dhcps_lease", DEFAULT_DHCPS_LEASE_MIN);
         if (get_config_param_int("dhcps_lease", &dhcps_lease) == ESP_OK && dhcps_lease > 0)
             dhcps_lease_min = (uint32_t)dhcps_lease;
+        if (get_config_param_str("dhcps_dns", &dhcps_dns_ip)!=ESP_OK)
+           set_config_param_str("dhcps_dns", DEFAULT_DHCPS_DNS_IP);
         get_config_param_str("dhcps_dns", &dhcps_dns_ip);
-        if (!dhcps_dns_ip)   dhcps_dns_ip   = param_set_default("");
+        if (!dhcps_dns_ip) {
+            set_config_param_str("dhcps_dns", DEFAULT_DHCPS_DNS_IP);
+            dhcps_dns_ip = param_set_default(DEFAULT_DHCPS_DNS_IP);
+        }
         if (dhcps_enabled)
             ESP_LOGI(TAG, "DHCP server enabled: pool %s-%s, lease %lu min",
                      dhcps_start_ip, dhcps_end_ip, (unsigned long)dhcps_lease_min);
@@ -714,6 +749,9 @@ void app_main(void)
     // Load WiFi country code from NVS (default "01" = world-safe)
     {
         char *saved_cc = NULL;
+        get_config_param_str("wifi_cc", &saved_cc);
+        if(!saved_cc) set_config_param_str("wifi_cc", DEFAULT_COUNTRY);
+    
         if (get_config_param_str("wifi_cc", &saved_cc) == ESP_OK && saved_cc != NULL) {
             if (strlen(saved_cc) == 2) {
                 wifi_country_code[0] = saved_cc[0];
@@ -721,7 +759,7 @@ void app_main(void)
                 wifi_country_code[2] = '\0';
             }
             free(saved_cc);
-        }
+        } 
         ESP_LOGI(TAG, "WiFi country code: %s", wifi_country_code);
     }
 
@@ -730,6 +768,9 @@ void app_main(void)
 
     // Apply TX power setting from NVS (must be after esp_wifi_start)
     int tx_power_dbm = 0;
+    if (get_config_param_int("tx_power", &tx_power_dbm) != ESP_OK){
+        set_config_param_int("tx_power", DEFAULT_TX_POWER_DBM);
+    }
     if (get_config_param_int("tx_power", &tx_power_dbm) == ESP_OK && tx_power_dbm >= 2 && tx_power_dbm <= 20) {
         int8_t power_qdbm = (int8_t)(tx_power_dbm * 4);
         esp_err_t ret = esp_wifi_set_max_tx_power(power_qdbm);
@@ -758,10 +799,17 @@ void app_main(void)
     // Web server
     char* web_disabled = NULL;
     get_config_param_str("web_disabled", &web_disabled);
-    if (web_disabled == NULL) web_disabled = param_set_default("0");
+    if (!web_disabled) {
+        set_config_param_str("web_disabled", DEFAULT_WEB_DISABLED);
+        get_config_param_str("web_disabled", &web_disabled);
+    }
+    
     if (strcmp(web_disabled, "0") == 0) {
-        int web_port_setting = 80;
-        get_config_param_int("web_port", &web_port_setting);
+        int web_port_setting = DEFAULT_WEB_PORT;
+        if (get_config_param_int("web_port", &web_port_setting) != ESP_OK) {
+            set_config_param_int("web_port", DEFAULT_WEB_PORT);
+            get_config_param_int("web_port", &web_port_setting);
+        }
         ESP_LOGI(TAG, "Starting web server on port %d", web_port_setting);
         start_webserver((uint16_t)web_port_setting);
     }
