@@ -114,3 +114,80 @@ menu "Bridge Configuration"
             serves many devices.
 
 endmenu
+
+menu "Factory Defaults"
+    comment "Fallback values used when a setting is not stored in NVS"
+    comment "(first boot / after factory_reset). Nothing is written to NVS."
+
+    config DEFAULT_AP_SSID
+        string "WiFi AP SSID"
+        default "esp32-bridge"
+
+    config DEFAULT_AP_PASSWORD
+        string "WiFi AP password"
+        default ""
+        help
+            Empty = open network. Otherwise WPA2/WPA3 requires 8-63 characters.
+
+    config DEFAULT_WIFI_COUNTRY
+        string "WiFi country code"
+        default "01"
+        help
+            2-character ISO 3166 code (e.g. US, DE, AU). "01" = world-safe.
+
+    config DEFAULT_HOSTNAME
+        string "DHCP hostname"
+        default "esp32-bridge"
+
+    config DEFAULT_TX_POWER_DBM
+        int "WiFi TX power in dBm (0 = max)"
+        default 0
+        range 0 20
+
+    config DEFAULT_STATIC_IP
+        string "Management static IP (empty = DHCP client)"
+        default ""
+
+    config DEFAULT_SUBNET_MASK
+        string "Management subnet mask"
+        default ""
+        help
+            Required if a static IP is set.
+
+    config DEFAULT_GATEWAY
+        string "Management gateway"
+        default ""
+        help
+            Required if a static IP is set.
+
+    config DEFAULT_DHCPS_ENABLED
+        bool "Enable built-in DHCP server"
+        default n
+
+    config DEFAULT_DHCPS_START_IP
+        string "DHCP pool start IP (empty = auto)"
+        default ""
+
+    config DEFAULT_DHCPS_END_IP
+        string "DHCP pool end IP (empty = auto)"
+        default ""
+
+    config DEFAULT_DHCPS_LEASE_MIN
+        int "DHCP lease time (minutes)"
+        default 120
+        range 1 65535
+
+    config DEFAULT_DHCPS_DNS_IP
+        string "DHCP DNS server offered to clients (empty = self)"
+        default ""
+
+    config DEFAULT_WEB_ENABLED
+        bool "Enable web interface"
+        default y
+
+    config DEFAULT_WEB_PORT
+        int "Web interface port"
+        default 80
+        range 1 65535
+
+endmenu

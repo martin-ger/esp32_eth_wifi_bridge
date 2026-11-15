@@ -415,6 +415,10 @@ idf.py -B build_w5500_s3 \
 
 OTA updates are supported through the web interface (Device Management section) with partition rollback on failed updates.
 
+### Custom Factory Defaults
+
+`menuconfig` → *Factory Defaults* sets the values a device uses when a setting has not been stored yet (first boot, or after `factory_reset`): AP SSID/password, WiFi country code, hostname, TX power, management IP, DHCP server, and web interface enable/port. These are fallbacks only and are never written to NVS, so settings changed at runtime still take precedence. To ship pre-configured builds, put the options in an `sdkconfig.defaults` file, e.g. `CONFIG_DEFAULT_WIFI_COUNTRY="AU"`.
+
 ---
 
 ## Installation

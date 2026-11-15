@@ -594,8 +594,8 @@ static int web_ui_cmd(int argc, char **argv)
         /* Show current status */
         char* lock = NULL;
         get_config_param_str("web_disabled", &lock);
-        bool enabled = (lock == NULL || strcmp(lock, "0") == 0);
-        int port = 80;
+        bool enabled = (strcmp(lock ? lock : DEFAULT_WEB_DISABLED, "0") == 0);
+        int port = DEFAULT_WEB_PORT;
         get_config_param_int("web_port", &port);
         printf("Web interface: %s (port %d)\n", enabled ? "enabled" : "disabled", port);
         printf("\nUsage:\n");
@@ -624,7 +624,7 @@ static int web_ui_cmd(int argc, char **argv)
         }
     } else if (strcmp(action, "port") == 0) {
         if (argc < 3) {
-            int port = 80;
+            int port = DEFAULT_WEB_PORT;
             get_config_param_int("web_port", &port);
             printf("Current web server port: %d\n", port);
             printf("Usage: web_ui port <port>\n");
@@ -1002,8 +1002,8 @@ static int show(int argc, char **argv)
 
         char* web_lock = NULL;
         get_config_param_str("web_disabled", &web_lock);
-        bool web_enabled = (web_lock == NULL || strcmp(web_lock, "0") == 0);
-        int web_port = 80;
+        bool web_enabled = (strcmp(web_lock ? web_lock : DEFAULT_WEB_DISABLED, "0") == 0);
+        int web_port = DEFAULT_WEB_PORT;
         get_config_param_int("web_port", &web_port);
         printf("\nWeb Interface: %s (port %d)\n", web_enabled ? "enabled" : "disabled", web_port);
         if (web_lock != NULL) free(web_lock);
@@ -1348,7 +1348,7 @@ static int set_tx_power_cmd(int argc, char **argv)
         if (ret == ESP_OK) {
             printf("\nCurrent TX power: %.1f dBm (raw: %d)\n", current_power * 0.25, current_power);
         }
-        int saved = 0;
+        int saved = DEFAULT_TX_POWER_DBM;
         get_config_param_int("tx_power", &saved);
         if (saved > 0) {
             printf("Saved setting: %d dBm\n", saved);

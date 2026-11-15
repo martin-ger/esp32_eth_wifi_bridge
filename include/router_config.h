@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "esp_netif.h"
+#include "sdkconfig.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,7 +18,31 @@ extern "C" {
 
 #define AP_MAX_CONNECTIONS 8
 
-#define DEFAULT_HOSTNAME "esp32-bridge"
+// Factory defaults (menuconfig -> Factory Defaults). Used only as fallbacks
+// when the corresponding NVS key is missing; never written to NVS.
+#define DEFAULT_HOSTNAME        CONFIG_DEFAULT_HOSTNAME
+#define DEFAULT_AP_SSID         CONFIG_DEFAULT_AP_SSID
+#define DEFAULT_AP_PASSWORD     CONFIG_DEFAULT_AP_PASSWORD
+#define DEFAULT_WIFI_COUNTRY    CONFIG_DEFAULT_WIFI_COUNTRY
+#define DEFAULT_TX_POWER_DBM    CONFIG_DEFAULT_TX_POWER_DBM
+#define DEFAULT_STATIC_IP       CONFIG_DEFAULT_STATIC_IP
+#define DEFAULT_SUBNET_MASK     CONFIG_DEFAULT_SUBNET_MASK
+#define DEFAULT_GATEWAY         CONFIG_DEFAULT_GATEWAY
+#ifdef CONFIG_DEFAULT_DHCPS_ENABLED
+#define DEFAULT_DHCPS_ENABLED   1
+#else
+#define DEFAULT_DHCPS_ENABLED   0
+#endif
+#define DEFAULT_DHCPS_START_IP  CONFIG_DEFAULT_DHCPS_START_IP
+#define DEFAULT_DHCPS_END_IP    CONFIG_DEFAULT_DHCPS_END_IP
+#define DEFAULT_DHCPS_LEASE_MIN CONFIG_DEFAULT_DHCPS_LEASE_MIN
+#define DEFAULT_DHCPS_DNS_IP    CONFIG_DEFAULT_DHCPS_DNS_IP
+#ifdef CONFIG_DEFAULT_WEB_ENABLED
+#define DEFAULT_WEB_DISABLED    "0"
+#else
+#define DEFAULT_WEB_DISABLED    "1"
+#endif
+#define DEFAULT_WEB_PORT        CONFIG_DEFAULT_WEB_PORT
 
 // Bridge netif (management IP)
 extern esp_netif_t *br_netif;
