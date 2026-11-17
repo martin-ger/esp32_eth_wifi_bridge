@@ -477,7 +477,7 @@ set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
 To erase all settings and return to defaults, use:
 
 - the **Factory Reset** button in the web interface (Configuration page, Danger Zone), or 
-- the console command: `factry_reset`, or 
+- the console command: `factory_reset`, or 
 - via the esptool, or
 - the Power-Cycle-Factory-Reset feature
 
@@ -500,10 +500,14 @@ esptool.py --chip esp32c3 --port /dev/ttyACM0 erase_flash
 esptool.py --chip esp32s3 --port <PORT> erase_flash
 ```
 
-**Power-Cycle-Factory-Reset** feature if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
+**Power-Cycle-Factory-Reset**
 
-This feature is disabled if the power is applied for more than 10 seconds.
+Use if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
 
-- Apply power for less than 10 seconds
+This feature is disabled if the power has been applied for more than 10 seconds.
+
+__WARNING__: If you have an unstable power supply and the device reboots continuously, it will be reset to Factory Defaults.
+
+- Apply power for less than 10 seconds (e.g. 3 seconds)
 - Remove power
 - Repeat 5 more times
