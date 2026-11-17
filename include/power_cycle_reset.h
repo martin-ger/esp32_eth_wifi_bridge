@@ -6,9 +6,10 @@ extern "C" {
 #endif
 
 /**
- * @brief Checks NVS for 5 consecutive rapid power cycles (within 5s of boot).
+ * @brief Checks NVS for MAX_POWER_CYCLES consecutive rapid power cycles 
+ *        (within CYCLE_TIMEOUT_MS millisec of boot).
  *        Triggers built-in factory_reset() if threshold is reached.
- *        Otherwise starts a 5-second timer to reset count to 0 on stable run.
+ *        Otherwise starts a CYCLE_TIMEOUT_MS millisec timer to reset count to 0 on stable run.
  */
 void check_power_cycle_factory_reset(void);
 
