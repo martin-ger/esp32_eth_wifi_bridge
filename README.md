@@ -137,7 +137,7 @@ Grouped into sections. Changes trigger a reboot to apply.
 - *Device Management* — OTA firmware upload, reboot
 - *Danger Zone* — disable the web interface; **Factory Reset** erases all settings and reboots with defaults (after a confirmation prompt)
 
-After a factory reset the AP returns to the default SSID (`esp32-bridge`, open network), the management IP reverts to DHCP, and the web password is removed — so the device usually comes back at a different address. Reconnect to the default AP or look up its new DHCP lease (or try `http://esp32-bridge.local`).
+After a factory reset the AP returns to the default settings defined at compile time (see [Custom Factory Defaults](#custom-factory-defaults) ). Reconnect to the default AP or look up its new DHCP lease (or try `http://esp32-bridge.local`).
 
 <img src="https://github.com/martin-ger/esp32_eth_wifi_bridge/blob/master/UI_config.png">
 
@@ -474,13 +474,20 @@ The bridge will reboot. Connect a WiFi client to the AP — it will receive an I
 set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
 ```
 
-To erase all settings and return to defaults, use the **Factory Reset** button in the web interface (Configuration page, Danger Zone) or the console command:
+To erase all settings and return to defaults, use:
+
+- the **Factory Reset** button in the web interface (Configuration page, Danger Zone), or 
+- the console command: `factory_reset`, or 
+- via the esptool, or
+- the Power-Cycle-Factory-Reset feature
+
+**Console Command**
 
 ```
 factory_reset
 ```
 
-or via esptool (full flash wipe):
+**esptool (full flash wipe)**
 
 ```bash
 # ESP32 (WT32-ETH01)
@@ -492,3 +499,15 @@ esptool.py --chip esp32c3 --port /dev/ttyACM0 erase_flash
 # ESP32-S3 + W5500
 esptool.py --chip esp32s3 --port <PORT> erase_flash
 ```
+
+**Power-Cycle-Factory-Reset**
+
+Use if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
+
+This feature is disabled if the power has been applied for more than 10 seconds.
+
+__WARNING__: If you have an unstable power supply and the device reboots continuously, it will be reset to Factory Defaults.
+
+- Apply power for less than 10 seconds (e.g. 3 seconds)
+- Remove power
+- Repeat 5 more times
