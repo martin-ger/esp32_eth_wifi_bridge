@@ -474,13 +474,20 @@ The bridge will reboot. Connect a WiFi client to the AP — it will receive an I
 set_mgmt_ip 192.168.1.200 255.255.255.0 192.168.1.1
 ```
 
-To erase all settings and return to defaults, use the **Factory Reset** button in the web interface (Configuration page, Danger Zone) or the console command:
+To erase all settings and return to defaults, use:
+
+- the **Factory Reset** button in the web interface (Configuration page, Danger Zone), or 
+- the console command: `factry_reset`, or 
+- via the esptool, or
+- the Power-Cycle-Factory-Reset feature
+
+**Console Command**
 
 ```
 factory_reset
 ```
 
-or via esptool (full flash wipe):
+**esptool (full flash wipe)**
 
 ```bash
 # ESP32 (WT32-ETH01)
@@ -493,7 +500,7 @@ esptool.py --chip esp32c3 --port /dev/ttyACM0 erase_flash
 esptool.py --chip esp32s3 --port <PORT> erase_flash
 ```
 
-or use the **Power-Cycle-Factory-Reset** feature if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
+**Power-Cycle-Factory-Reset** feature if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
 
 This feature is disabled if the power is applied for more than 10 seconds.
 
