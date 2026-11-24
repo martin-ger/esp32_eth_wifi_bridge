@@ -95,7 +95,7 @@ With the INT/RST solder bridges open (factory state) the defaults use `INT=-1` (
 - Optional management IP (static or DHCP) for web and remote access
 - Optional built-in DHCP server — serves Ethernet and WiFi clients from a single configurable pool
 - Packet capture to Wireshark over TCP (PCAP streaming, promiscuous mode)
-- Remote console — password-protected TCP CLI on a configurable port
+- Remote console — CLI over SSH (encrypted, password-protected), port 22 by default
 - Syslog forwarding — ship ESP log output to a remote syslog server via UDP
 - OTA firmware update through the web interface
 - Configurable WiFi TX power, status LED, and timezone
@@ -212,7 +212,7 @@ The connection command is also shown in the PCAP section of the Configuration pa
 
 ## Remote Console
 
-A TCP server provides a password-authenticated CLI session accessible over the network. It reuses the web interface password. Output from CLI commands is captured and forwarded to the remote session.
+The CLI is reachable over the network through a built-in minimal SSH server (curve25519 key exchange, `ecdsa-sha2-nistp256` host key, AES-GCM). Login is by password: the same password as the web interface; any user name is accepted. Output from CLI commands is captured and forwarded to the remote session.
 
 ```
 remote_console enable
@@ -224,13 +224,18 @@ remote_console kick
 remote_console status
 ```
 
-Default port is 2323. Connect with any TCP client:
+Default port is 22. Connect with any SSH client, interactively or for a single command:
 
 ```
-nc <bridge-ip> 2323
+ssh admin@<bridge-ip>
+ssh admin@<bridge-ip> show status
 ```
 
-The service is disabled by default. A web password must be set before enabling it; if the password is cleared later, new sessions are refused until one is set again. Idle sessions are disconnected after the configured timeout (default 300 seconds; 0 disables the timeout). Only one session is active at a time.
+The service is disabled by default. A web password must be set before enabling it; if the password is cleared later, logins are refused until one is set again. Failed logins are throttled (1 s, doubling every 3 failures up to 30 s); the backoff is shared with the web interface login. Idle sessions are disconnected after the configured timeout (default 300 seconds; 0 disables the timeout). Only one session is active at a time.
+
+The host key is generated on first start and stored in NVS. Its fingerprint is shown by `remote_console status` and on the configuration page; compare it with the one your SSH client shows on the first connection. A factory reset creates a new host key, so the client will warn about a changed key afterwards.
+
+Devices that were configured with the old plain-TCP console keep their stored port (e.g. 2323); connect with `ssh -p 2323 ...` or set `remote_console port 22`.
 
 The `bind` option controls which network interfaces the server listens on (AP = WiFi access point, ETH = Ethernet uplink).
 
@@ -294,9 +299,9 @@ Connect via serial at 115200 bps, or via the remote console.
 
 | Command | Description |
 |---------|-------------|
-| `remote_console enable` | Enable remote console |
+| `remote_console enable` | Enable remote console (SSH) |
 | `remote_console disable` | Disable remote console |
-| `remote_console port <port>` | Set TCP port |
+| `remote_console port <port>` | Set SSH port (default 22) |
 | `remote_console bind <ap,eth>` | Set interface binding |
 | `remote_console timeout <seconds>` | Set idle timeout |
 | `remote_console kick` | Disconnect active session |

@@ -1,8 +1,9 @@
 idf_component_register(
-    SRCS "remote_console.c"
+    SRCS "remote_console.c" "ssh_transport.c"
     INCLUDE_DIRS "include"
-    REQUIRES esp_timer nvs_flash console lwip esp_netif esp_event log cmd_router
+    REQUIRES esp_timer nvs_flash console lwip esp_netif esp_event log cmd_router mbedtls
 )
+target_compile_options(${COMPONENT_LIB} PRIVATE -Os)
 
 # Wrap output functions to intercept console output
 # Note: Do NOT wrap vprintf - it's used by ESP_LOG internally

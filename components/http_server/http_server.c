@@ -747,7 +747,19 @@ static esp_err_t index_post_handler(httpd_req_t *req)
     /* Handle login */
     if (httpd_query_key_value(body, "login_password", param, sizeof(param)) == ESP_OK) {
         preprocess_string(param);
-        if (password_protection_enabled && verify_web_password(param)) {
+        /* Shared backoff with SSH: while it runs, no password is
+         * checked. Refusing instead of sleeping keeps the (single)
+         * httpd task responsive for everyone else. */
+        uint32_t wait_ms = password_protection_enabled ? router_login_wait_ms() : 0;
+        if (wait_ms > 0) {
+            char _ip[16];
+            ESP_LOGW(TAG, "Web UI login from %s refused: backoff %lu ms",
+                     get_client_ip(req, _ip, sizeof(_ip)), (unsigned long)wait_ms);
+            snprintf(login_message, sizeof(login_message),
+                     "ERROR: Too many failed logins. Try again in %lu s.",
+                     (unsigned long)((wait_ms + 999) / 1000));
+        } else if (password_protection_enabled && verify_web_password(param)) {
+            router_login_result(true);
             create_session(req);
             { char _ip[16]; ESP_LOGI(TAG, "Web UI login successful from %s", get_client_ip(req, _ip, sizeof(_ip))); }
             /* Redirect to reload page with session cookie */
@@ -757,7 +769,9 @@ static esp_err_t index_post_handler(httpd_req_t *req)
             return ESP_OK;
         } else {
             char _ip[16];
-            ESP_LOGW(TAG, "Web UI login failed: incorrect password from %s", get_client_ip(req, _ip, sizeof(_ip)));
+            uint32_t next_ms = password_protection_enabled ? router_login_result(false) : 0;
+            ESP_LOGW(TAG, "Web UI login failed: incorrect password from %s (next check in %lu ms)",
+                     get_client_ip(req, _ip, sizeof(_ip)), (unsigned long)next_ms);
             strcpy(login_message, "ERROR: Incorrect password.");
         }
 
@@ -1203,12 +1217,14 @@ static esp_err_t config_get_handler(httpd_req_t *req)
     SEND_CHUNK(req, section, HTTPD_RESP_USE_STRLEN);
 
     /* Chunk 7: Remote Console */
+    char rc_fp[64];
+    remote_console_get_hostkey_fingerprint(rc_fp, sizeof(rc_fp));
     snprintf(section, sizeof(section), CONFIG_CHUNK_RC,
         rc_enabled_checked, rc_disabled_checked,
         rc_status_color, rc_status_text, rc_kick_section,
         rc_config.port,
         rc_ap_chk, rc_eth_chk,
-        (unsigned long)rc_config.idle_timeout_sec);
+        (unsigned long)rc_config.idle_timeout_sec, rc_fp);
     SEND_CHUNK(req, section, HTTPD_RESP_USE_STRLEN);
 
     /* Chunk 7b: PCAP Capture */

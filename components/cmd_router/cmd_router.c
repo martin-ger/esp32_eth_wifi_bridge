@@ -14,6 +14,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_console.h"
 #include "esp_system.h"
 #include "esp_sleep.h"
@@ -147,7 +148,7 @@ void preprocess_string(char* str)
 /* Keys whose value must never reach the console, the log, or syslog. */
 static bool is_secret_param(const char *name)
 {
-    static const char *const secrets[] = { "ap_passwd", "web_password" };
+    static const char *const secrets[] = { "ap_passwd", "web_password", "rc_hostkey" };
     for (size_t i = 0; i < sizeof(secrets) / sizeof(secrets[0]); i++) {
         if (strcmp(name, secrets[i]) == 0) return true;
     }
@@ -755,6 +756,51 @@ bool verify_web_password(const char *plaintext)
         set_web_password_hashed(plaintext);
     }
     return match;
+}
+
+/* ---- Shared failed-login backoff (web UI + SSH) ---- */
+
+#define LOGIN_BACKOFF_BASE_MS   1000
+#define LOGIN_BACKOFF_MAX_MS    30000
+#define LOGIN_BACKOFF_STEP      3                         /* failures per doubling */
+#define LOGIN_BACKOFF_RESET_US  (15LL * 60 * 1000000)     /* forget after 15 quiet min */
+
+static portMUX_TYPE s_login_lock = portMUX_INITIALIZER_UNLOCKED;
+static uint32_t s_login_fail_streak;
+static int64_t s_login_last_fail_us;
+static int64_t s_login_next_us;         /* no attempt is checked before this */
+
+uint32_t router_login_wait_ms(void)
+{
+    int64_t now = esp_timer_get_time();
+    portENTER_CRITICAL(&s_login_lock);
+    int64_t left = s_login_next_us - now;
+    portEXIT_CRITICAL(&s_login_lock);
+    return left > 0 ? (uint32_t)((left + 999) / 1000) : 0;
+}
+
+uint32_t router_login_result(bool success)
+{
+    int64_t now = esp_timer_get_time();
+    uint32_t ms = 0;
+    portENTER_CRITICAL(&s_login_lock);
+    if (success) {
+        s_login_fail_streak = 0;
+        s_login_next_us = 0;
+    } else {
+        if (s_login_fail_streak && now - s_login_last_fail_us > LOGIN_BACKOFF_RESET_US) {
+            s_login_fail_streak = 0;
+        }
+        s_login_fail_streak++;
+        s_login_last_fail_us = now;
+        uint32_t shift = (s_login_fail_streak - 1) / LOGIN_BACKOFF_STEP;
+        if (shift > 5) shift = 5;
+        ms = (uint32_t)LOGIN_BACKOFF_BASE_MS << shift;
+        if (ms > LOGIN_BACKOFF_MAX_MS) ms = LOGIN_BACKOFF_MAX_MS;
+        s_login_next_us = now + (int64_t)ms * 1000;
+    }
+    portEXIT_CRITICAL(&s_login_lock);
+    return ms;
 }
 
 esp_err_t set_web_password_hashed(const char *plaintext)
@@ -1655,10 +1701,10 @@ static int remote_console_cmd(int argc, char **argv)
     if (argc < 2) {
         printf("Usage: remote_console <action> [args]\n");
         printf("  status              - Show remote console status\n");
-        printf("  enable              - Enable remote console\n");
+        printf("  enable              - Enable remote console (SSH)\n");
         printf("  disable             - Disable remote console\n");
-        printf("  port <port>         - Set TCP port (requires restart)\n");
-        printf("  bind <both|ap|eth>  - Set interface binding\n");
+        printf("  port <port>         - Set SSH port (requires restart)\n");
+        printf("  bind <ap,eth>       - Set interface binding\n");
         printf("  timeout <seconds>   - Set idle timeout (0=none)\n");
         printf("  kick                - Disconnect current session\n");
         return 0;
@@ -1694,7 +1740,13 @@ static int remote_console_cmd(int argc, char **argv)
         printf("Connections:    %lu total\n", (unsigned long)status.total_connections);
         printf("Auth failures:  %lu\n", (unsigned long)status.failed_auths);
 
-        printf("\nWARNING: Currently uses plain TCP (not encrypted).\n");
+        char fp[64];
+        remote_console_get_hostkey_fingerprint(fp, sizeof(fp));
+        printf("Protocol:       SSH (password = router password)\n");
+        printf("Host key:       ecdsa-sha2-nistp256 %s\n", fp);
+        if (!is_web_password_set()) {
+            printf("\nNOTE: No router password set - SSH logins are refused.\n");
+        }
 
     } else if (strcmp(action, "enable") == 0) {
         esp_err_t err = remote_console_enable();
@@ -1785,11 +1837,11 @@ static void register_remote_console_cmd(void)
 {
     const esp_console_cmd_t cmd = {
         .command = "remote_console",
-        .help = "Manage remote console (network CLI access)\n"
+        .help = "Manage remote console (network CLI access over SSH)\n"
                 "  remote_console status              - Show status and connection info\n"
-                "  remote_console enable              - Enable remote console\n"
+                "  remote_console enable              - Enable remote console (SSH)\n"
                 "  remote_console disable             - Disable remote console\n"
-                "  remote_console port <port>         - Set TCP port (default: 2323)\n"
+                "  remote_console port <port>         - Set SSH port (default: 22)\n"
                 "  remote_console bind <ap,eth>       - Set interface binding\n"
                 "  remote_console timeout <seconds>   - Set idle timeout (0=none)\n"
                 "  remote_console kick                - Disconnect current session",

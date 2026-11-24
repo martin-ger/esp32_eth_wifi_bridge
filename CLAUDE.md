@@ -81,11 +81,11 @@ The firmware hooks into the lwIP ETH netif to count bytes and capture packets.
 - `init_ap_netif_hooks()` - Install AP hooks (for PCAP)
 
 ### Remote Console Component
-The `components/remote_console/` directory provides network-accessible CLI via TCP.
+The `components/remote_console/` directory provides network-accessible CLI over SSH (own minimal SSH-2 server in `ssh_transport.c` on mbedTLS: curve25519, ecdsa-sha2-nistp256, AES-GCM; ported from the sibling `esp32_nat_router` repo).
 
 **Features:**
-- TCP server on port 2323 (configurable)
-- Password authentication (reuses `web_password` from NVS)
+- SSH server on port 22 (configurable); exec and interactive shell sessions
+- Password authentication (reuses `web_password` from NVS); failed-login backoff shared with the web UI (`router_login_wait_ms`/`router_login_result` in cmd_router)
 - Single concurrent session with idle timeout
 - Output capture via linker wrapping (`--wrap=printf`, `--wrap=puts`, etc.)
 - Disabled by default for security
@@ -96,9 +96,10 @@ The `components/remote_console/` directory provides network-accessible CLI via T
 
 **NVS keys:**
 - `rc_enabled` (u8) - Service enabled flag
-- `rc_port` (u16) - TCP port (default 2323)
+- `rc_port` (u16) - SSH port (default 22)
 - `rc_bind` (u8) - Interface binding bitmask
 - `rc_timeout` (u32) - Idle timeout in seconds
+- `rc_hostkey` (blob) - SSH host private key (secret; generated on first start)
 
 ### Configuration Storage
 All settings persist in NVS (Non-Volatile Storage) under namespace `esp32_nat`:

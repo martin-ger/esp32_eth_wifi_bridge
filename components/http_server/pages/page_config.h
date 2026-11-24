@@ -131,7 +131,7 @@ setTimeout(\"location.href = '/'\", 10000);\
 <small style='font-family:monospace;'>use with: nc %s 19000 | wireshark -k -i -</small>\
 </form>"
 
-/* Remote Console section - uses: rc_en_chk, rc_dis_chk, rc_color, rc_status, rc_kick, rc_port, rc_ap_chk, rc_eth_chk, rc_timeout */
+/* Remote Console section (SSH) - uses: rc_en_chk, rc_dis_chk, rc_color, rc_status, rc_kick, rc_port, rc_ap_chk, rc_eth_chk, rc_timeout, rc_fp */
 #define CONFIG_CHUNK_RC "\
 <h2>Remote Console</h2>\
 <form action='' method='GET'>\
@@ -148,6 +148,7 @@ setTimeout(\"location.href = '/'\", 10000);\
 <label><input type='checkbox' name='rc_bind_eth' value='1' %s> ETH</label>\
 </td></tr>\
 <tr><td>Idle Timeout</td><td><input type='number' name='rc_timeout' value='%lu' min='0' max='86400' style='width: 100px;'/> sec (0 = no)</td></tr>\
+<tr><td>SSH Host Key</td><td><code style='font-size: 0.8rem; word-break: break-all;'>%s</code></td></tr>\
 <tr><td></td><td><input type='submit' value='Save' class='ok-button'/></td></tr>\
 </table>\
 </form>"
