@@ -8,20 +8,15 @@
 #include "nvs.h"
 
 #include "power_cycle_reset.h"
+#include "wifi_config.h"
+#include "router_config.h"
 
 static const char *TAG_PC = "PWR_CYCLE_RESET";
 
 // ============================================================================
-// HARDWARE VARIANT GUARD: WT32-ETH01 ONLY
-// Guards power cycle reset for WT32-ETH01 board targets
+// Factory-Reset-on-Power-Cycle feature
 // ============================================================================
-#if defined(CONFIG_TARGET_WT32_ETH01) || defined(CONFIG_WT32_ETH01) || defined(WT32_ETH01) || defined(BOARD_WT32_ETH01) || defined(CONFIG_ETH_USE_ESP32_EMAC)
-#define ENABLE_WT32_ETH01_PWR_RESET 1
-#else
-#define ENABLE_WT32_ETH01_PWR_RESET 1
-#endif
-
-#if ENABLE_WT32_ETH01_PWR_RESET
+#ifdef CONFIG_POWER_CYCLE_RESET_ENABLED
 
 #define MAX_POWER_CYCLES 5
 #define CYCLE_TIMEOUT_MS 10000 // 10-second window to detect rapid power cycles
@@ -34,7 +29,8 @@ static void pwr_cycle_delay_task(void *pvParameters) {
     }
 
     nvs_handle_t nvs;
-    esp_err_t err = nvs_open("storage", NVS_READWRITE, &nvs);
+    esp_err_t err = nvs_open(PARAM_NAMESPACE, NVS_READWRITE, &nvs);
+    
     if (err == ESP_OK) {
         uint8_t count = 0;
         nvs_set_u8(nvs, "pwr_cycles", count);
@@ -53,7 +49,15 @@ void check_power_cycle_factory_reset(void) {
     nvs_handle_t nvs;
     uint8_t pwr_cycles = 0;
 
-    esp_err_t err = nvs_open("storage", NVS_READWRITE, &nvs);
+    esp_reset_reason_t r = esp_reset_reason();
+    if (r != ESP_RST_POWERON && r != ESP_RST_EXT) {
+        /* not a power cycle: don't count, don't arm the timer */
+        ESP_LOGI(TAG_PC, "ROB ----- Not a power cycle  ");
+        return;
+    }
+
+    esp_err_t err = nvs_open(PARAM_NAMESPACE, NVS_READWRITE, &nvs);
+
     if (err != ESP_OK) {
         ESP_LOGE(TAG_PC, "Error opening NVS handle: %s", esp_err_to_name(err));
         return;
@@ -81,9 +85,12 @@ void check_power_cycle_factory_reset(void) {
         nvs_flash_deinit();
 
         // 3. Erase NVS partition
-        ESP_LOGW(TAG_PC, "NVS partition erased. Restarting system into factory defaults...");
-        nvs_flash_erase();
-
+        if (ESP_OK == nvs_flash_erase()) {
+            ESP_LOGW(TAG_PC, "NVS partition erased. Restarting system into factory defaults...");
+        } else {
+            ESP_LOGE(TAG_PC, "Failed to erase NVS partition!");
+        }
+        
         // 4. Flush UART serial logs
         vTaskDelay(pdMS_TO_TICKS(100));
 
@@ -106,9 +113,9 @@ void check_power_cycle_factory_reset(void) {
 
 #else
 
-// No-op stub for non-WT32-ETH01 targets
+// No-op stub 
 void check_power_cycle_factory_reset(void) {
-    ESP_LOGI(TAG_PC, "Power cycle reset feature disabled for non-WT32-ETH01 target.");
+    ESP_LOGI(TAG_PC, "Power cycle reset feature disabled.");
 }
 
-#endif // ENABLE_WT32_ETH01_PWR_RESET
+#endif // ENABLE_POWER_CYCLE_RESET

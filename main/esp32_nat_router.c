@@ -611,7 +611,7 @@ void app_main(void)
 {
     initialize_nvs();
     load_log_level();
-    check_power_cycle_factory_reset(); // Check for power-cycle factory reset request (3x power cycle within 5 seconds)
+    check_power_cycle_factory_reset(); // Check for power-cycle factory reset request
 
 
     /* Restore timezone from NVS */

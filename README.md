@@ -502,12 +502,17 @@ esptool.py --chip esp32s3 --port <PORT> erase_flash
 
 **Power-Cycle-Factory-Reset**
 
+This feature is enabled & configured at build time by running `menuconfig` → *Factory Default on Power Cycle*, or by manually editing these settings in `sdkconfig`
+```
+CONFIG_POWER_CYCLE_RESET_ENABLED=y
+CONFIG_POWER_CYCLE_RESET_COUNT=5
+CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC=10
+```
+
 Use if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
 
-This feature is disabled if the power has been applied for more than 10 seconds.
+This feature is disabled if the power has been applied for more than CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC seconds.
 
-__WARNING__: If you have an unstable power supply and the device reboots continuously, it will be reset to Factory Defaults.
-
-- Apply power for less than 10 seconds (e.g. 3 seconds)
+- Apply power for less than CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC seconds 
 - Remove power
-- Repeat 5 more times
+- Repeat ( CONFIG_POWER_CYCLE_RESET_COUNT - 1 ) more times
