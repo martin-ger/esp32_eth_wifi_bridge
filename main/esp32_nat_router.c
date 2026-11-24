@@ -60,6 +60,9 @@
 #include "remote_console.h"
 #include "syslog_client.h"
 
+#include "power_cycle_reset.h"
+
+
 // Byte counting variables
 uint64_t sta_bytes_sent = 0;
 uint64_t sta_bytes_received = 0;
@@ -608,6 +611,8 @@ void app_main(void)
 {
     initialize_nvs();
     load_log_level();
+    check_power_cycle_factory_reset(); // Check for power-cycle factory reset request
+
 
     /* Restore timezone from NVS */
     {

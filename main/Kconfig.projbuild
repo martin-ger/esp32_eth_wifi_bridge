@@ -115,6 +115,26 @@ menu "Bridge Configuration"
 
 endmenu
 
+menu "Factory Default on Power Cycle"
+    comment "This feature allows the device to reset to factory defaults if it is power-cycled a certain number of times within a time window."
+
+    config POWER_CYCLE_RESET_ENABLED
+        bool "Enable factory reset on power cycle"
+        default y   
+
+    config  POWER_CYCLE_RESET_COUNT
+        int "Number of power cycles to trigger factory reset"
+        default 5
+        range 1 10
+        depends on POWER_CYCLE_RESET_ENABLED
+
+    config POWER_CYCLE_RESET_TIMEOUT_SEC
+        int "Time window for power cycle detection (sec)"
+        default 10
+        range 1 60
+        depends on POWER_CYCLE_RESET_ENABLED 
+endmenu
+
 menu "Factory Defaults"
     comment "Fallback values used when a setting is not stored in NVS"
     comment "(first boot / after factory_reset). Nothing is written to NVS."
