@@ -502,17 +502,16 @@ esptool.py --chip esp32s3 --port <PORT> erase_flash
 
 **Power-Cycle-Factory-Reset**
 
-This feature is enabled & configured at build time by running `menuconfig` → *Factory Default on Power Cycle*, or by manually editing these settings in `sdkconfig`
+A last resort when neither the serial console nor the web interface is accessible (e.g. forgotten password): power the device on **5 times in a row, each time for less than 10 seconds**. On the 5th power-up all settings are erased (same as `factory_reset`) and the device restarts with factory defaults. With the stock build that means the default open AP `esp32-bridge` and DHCP for the management IP, so the device usually comes back at a different address (try `http://esp32-bridge.local`).
+
+Only real power-ups (and the EN/reset pin) are counted; crashes, watchdog resets and software restarts are ignored. Once the device has been running for 10 seconds, the counter is cleared.
+
+The feature is enabled by default and can be turned off or tuned in `menuconfig` → *Factory Default on Power Cycle*:
+
 ```
 CONFIG_POWER_CYCLE_RESET_ENABLED=y
-CONFIG_POWER_CYCLE_RESET_COUNT=5
-CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC=10
+CONFIG_POWER_CYCLE_RESET_COUNT=5          # 3..10 power-ups
+CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC=10   # 2..60 seconds
 ```
 
-Use if you have no access to the console (serial) port or to the Web Interface. (e.g. forgotten password). 
-
-This feature is disabled if the power has been applied for more than CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC seconds.
-
-- Apply power for less than CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC seconds 
-- Remove power
-- Repeat ( CONFIG_POWER_CYCLE_RESET_COUNT - 1 ) more times
+Consider disabling it if the device is powered from a source that may flap (smart plug, UPS, PoE switch).

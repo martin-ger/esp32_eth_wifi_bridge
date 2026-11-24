@@ -6,10 +6,13 @@ extern "C" {
 #endif
 
 /**
- * @brief Checks NVS for MAX_POWER_CYCLES consecutive rapid power cycles 
- *        (within CYCLE_TIMEOUT_MS millisec of boot).
- *        Triggers built-in factory_reset() if threshold is reached.
- *        Otherwise starts a CYCLE_TIMEOUT_MS millisec timer to reset count to 0 on stable run.
+ * @brief Power-cycle factory reset check. Call once at boot, after NVS init.
+ *
+ * Only power-on and EN-pin resets are counted. When CONFIG_POWER_CYCLE_RESET_COUNT
+ * consecutive power-ups each last less than CONFIG_POWER_CYCLE_RESET_TIMEOUT_SEC,
+ * factory_reset_settings() is called and the device restarts. Otherwise a one-shot
+ * timer clears the counter once the device has been up for the timeout.
+ * No-op when CONFIG_POWER_CYCLE_RESET_ENABLED is not set.
  */
 void check_power_cycle_factory_reset(void);
 

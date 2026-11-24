@@ -120,19 +120,26 @@ menu "Factory Default on Power Cycle"
 
     config POWER_CYCLE_RESET_ENABLED
         bool "Enable factory reset on power cycle"
-        default y   
+        default y
+        help
+            Count consecutive short power-ups (power-on or EN pin reset only;
+            crashes, watchdog and software restarts are ignored). When the
+            count is reached, all settings are erased as with factory_reset.
 
-    config  POWER_CYCLE_RESET_COUNT
+    config POWER_CYCLE_RESET_COUNT
         int "Number of power cycles to trigger factory reset"
         default 5
-        range 1 10
+        range 3 10
         depends on POWER_CYCLE_RESET_ENABLED
 
     config POWER_CYCLE_RESET_TIMEOUT_SEC
         int "Time window for power cycle detection (sec)"
         default 10
-        range 1 60
-        depends on POWER_CYCLE_RESET_ENABLED 
+        range 2 60
+        depends on POWER_CYCLE_RESET_ENABLED
+        help
+            A power-up only counts if power is removed again within this
+            many seconds. After this time the counter is cleared.
 endmenu
 
 menu "Factory Defaults"
